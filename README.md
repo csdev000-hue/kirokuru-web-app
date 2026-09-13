@@ -1,7 +1,7 @@
 # kirokuru-web-app
 
 会議からAI議事録・AIチケット候補を作り、人が確認して正式チケットへつなげる「AIプロジェクトマネージャー」です。
-現在はPhase 0の開発基盤のみ実装しています。認証、業務テーブル、CRUD、AI生成、録画、会議機能は後続Phaseで実装します。
+現在はPhase 1までの開発基盤・14テーブルのDBスキーマ・Relation・Migrationを実装しています。認証、CRUD API、AI生成、録画、会議機能は後続Phaseで実装します。
 
 ## 技術スタック
 
@@ -50,6 +50,7 @@ AWS SDKは標準Credential Provider Chainを使用します。IAM Role等を使�
 npm run lint
 npm run typecheck
 npm run test:run
+npm run test:integration
 npm run build
 npx playwright install chromium
 npm run test:e2e
@@ -57,7 +58,7 @@ npm run test:e2e
 
 `npm run test`はVitestのwatchモードです。unit testは環境変数検証、共通エラー、Health Check、初期画面を検証します。
 E2Eはビルド済みアプリを`127.0.0.1:3100`で起動し、トップページとHealth Checkを検証します。先に`npm run build`を実行し、このポートを空けてください。既存サーバーを再利用せず、実行後は自動停止します。
-外部サービスには接続しません。integration/security専用スクリプトは、対象機能の実装時に追加します。
+外部サービスには接続しません。`test:integration`はインストール済みPostgreSQL 14以上の`initdb`/`pg_ctl`で一時クラスタを作成し、Migration・DB制約・Relation・Fixtureを検証します。`PG_BIN`でバイナリディレクトリを指定できます。DATABASE_URLは使用せず、テスト後に一時DBを停止・削除します。security専用スクリプトは未定義です。
 
 依存関係はlockfileで固定しています。Next.jsのESLintプラグインとの互換性のためESLint 9系を使用しています（npmのサポート終了警告あり）。プラグイン対応後に更新してください。
 Drizzle Kitの間接依存`@esbuild-kit/core-utils`に限り、既知の開発サーバー脆弱性を修正した`esbuild` 0.25系へoverrideしています。Drizzle Kit更新時にoverrideの要否を再確認してください。
@@ -68,12 +69,12 @@ npm run start
 ```
 
 上記はローカルでの本番形式のビルド・起動であり、Productionへのデプロイ操作ではありません。
-Pull RequestのCIでは`npm ci`、lint、typecheck、unit test、build、E2Eを実行します。デプロイ・Migrationは実行しません。
+Pull RequestのCIでは`npm ci`、lint、typecheck、unit test、隔離DB integration test、Migration再生成差分チェック、build、E2Eを実行します。Migrationの適用先はテスト専用一時DBのみです。デプロイは実行しません。
 
 ## DB Migration
 
-Phase 0では業務テーブルとMigrationはありません。DBクライアントはTLS証明書検証を有効にし、接続数を制限して再利用します。Neonの接続プール用URLの利用を想定しています。
-Phase 1以降で`lib/db/schema/index.ts`からスキーマをexportし、次の手順で開発DBを更新します。
+14テーブルの初期Migrationは`drizzle/migrations/0000_phase_01_database.sql`です。スキーマとRelation・型は`lib/db/schema/index.ts`からexportしています。DBクライアントはTLS証明書検証を有効にし、接続数を制限して再利用します。Neonの接続プール用URLの利用を想定しています。
+以下は今後、安全な開発DBを設定したうえで実行する手順です。
 
 ```bash
 # .env.local の DATABASE_URL が開発DBを指すことを確認する
@@ -82,7 +83,9 @@ npm run db:generate
 npm run db:migrate
 ```
 
-`drizzle.config.ts`はNext.jsの環境変数読み込みを使い、`DATABASE_URL`未設定・不正時は停止します。
+`db:generate`は接続情報不要で、環境変数ファイルを読み込みません。`db:migrate`等の接続が必要なコマンドのみNext.js方式で環境変数を読み込み、`DATABASE_URL`未設定・不正時は停止します。
+今回の実装では`db:migrate`による既存DBへの適用は行っていません。生成SQLは隔離テストDBへDrizzle Migratorで適用して検証しています。
+設計差分、FK・Index一覧、更新日時方式、Fixture安全性は[DB実装補足](docs/design/database-implementation.md)を参照してください。
 MigrationをGit管理し、Productionへの適用は別途承認済みの運用手順に従ってください。
 
 ## ディレクトリ構成
@@ -94,13 +97,13 @@ components/            ui/、layout/（後続Phase用）
 lib/
   env.ts               サーバー環境変数検証
   errors.ts            API共通エラー型・安全な内部エラー応答
-  db/                  接続基盤、schema/（Phase 0は空）
+  db/                  接続基盤、schema/（14テーブル・Relation・型）
   auth/ permissions/   後続Phase用
   ai/                  prompts/、schemas/、validators/、services/
   bedrock/ s3/ livekit/ サーバー専用クライアント
   security/ utils/     セキュリティ・共通処理
 drizzle/migrations/    Migration出力先
-tests/                 unit/、integration/、security/、fixtures/
+tests/                 unit/、integration/、security/、fixtures/、helpers/
 e2e/                   Playwright Smoke Test
 docs/                  要件・設計・Phase仕様書
 scripts/ ops/ infra/   スクリプト・運用・インフラ用
@@ -116,6 +119,6 @@ scripts/ ops/ infra/   スクリプト・運用・インフラ用
 - ブラウザはNext.jsのAPIを経由します。AWSキー、DB接続文字列、LiveKit API SecretをpropsやAPI応答へ渡しません。
 - 設定エラーはキー名のみを表示します。未知の内部例外は共通エラー応答に変換し、Stack TraceやSQL・Secretを返しません。
 - Bedrockの`generateStructured<T>`は未実装エラーを返す骨組みです。AI呼び出し・署名付きURL発行・Token発行は後続Phaseで実装します。
-- Production環境への接続・Migration・DeployはPhase 0の対象外です。
+- Production環境への接続・Migration・DeployはPhase 0/1の対象外です。
 
-作業前に`AGENTS.md`、`docs/phases/phase-00-bootstrap.md`、関連設計書を確認してください。
+作業前に`AGENTS.md`、作業するPhaseの`docs/phases/`仕様書、関連設計書を確認してください。
