@@ -1,11 +1,12 @@
 import { sql } from "drizzle-orm";
-import { pgTable, uuid, varchar, primaryKey, check, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, primaryKey, check, index, timestamp } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { createdAt, updatedAt } from "./shared";
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 200 }).notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdBy: uuid("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

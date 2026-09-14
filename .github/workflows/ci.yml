@@ -25,6 +25,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql libpq-dev
       - run: npm run test:integration
+      - run: npm run test:security
       - name: Check migration snapshot consistency
         run: |
           npm run db:generate
