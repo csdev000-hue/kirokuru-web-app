@@ -1,0 +1,61 @@
+import { expect, test } from "@playwright/test";
+
+test("Ticket作成・検索・編集・コメント・Kanban・論理削除", async ({ page, context }) => {
+  const token = process.env.E2E_SESSION_TOKEN;
+  if (!token) throw new Error("E2E session fixture is missing");
+  await page.goto("/login");
+  await context.addCookies([{ name: "authjs.session-token", value: token, domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
+  // Each journey owns its project so parallel archive tests cannot affect it.
+  const organizations = await (await context.request.get("/api/organizations")).json();
+  const response = await context.request.post("/api/projects", { headers: { origin: "http://127.0.0.1:3100" }, data: { organizationId: organizations.data.find((row: {name: string}) => row.name === "Organization A").id, name: "Ticket E2E Project" } });
+  expect(response.status()).toBe(201);
+  const project = (await response.json()).data;
+  await page.goto(`/projects/${project.id}`);
+  await page.getByRole("link", { name: "チケット一覧", exact: true }).click();
+  await expect(page.getByText("まだチケットがありません", { exact: false })).toBeVisible();
+  await page.getByRole("link", { name: "チケットを作成", exact: true }).click();
+  await page.getByLabel("タイトル", { exact: true }).fill("API仕様更新");
+  const html = '<img src=x onerror="window.ticketXss=true">';
+  await page.getByLabel("説明", { exact: true }).fill(html);
+  await page.getByLabel("優先度", { exact: true }).selectOption("high");
+  await page.getByLabel("担当者", { exact: true }).selectOption({ label: "Owner A" });
+  await page.getByLabel("期限", { exact: true }).fill("2020-01-01");
+  await page.getByRole("button", { name: "チケットを作成", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "API仕様更新", exact: true })).toBeVisible();
+  const ticketUrl = page.url();
+  await expect(page.locator("p.user-content").filter({ hasText: html })).toBeVisible();
+  await expect(page.getByText("期限切れ", { exact: true })).toBeVisible();
+  await expect(page.locator("main img")).toHaveCount(0);
+  await page.getByRole("link", { name: "チケット一覧へ" }).click();
+  await page.getByLabel("検索", { exact: true }).fill("API仕様");
+  await page.getByRole("button", { name: "絞り込む" }).click();
+  await page.getByRole("link", { name: "API仕様更新", exact: true }).click();
+  await page.getByLabel("タイトル", { exact: true }).fill("API仕様更新完了");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "API仕様更新完了", exact: true })).toBeVisible();
+  const script = "<script>window.commentXss=true</script>";
+  await page.getByLabel("コメント", { exact: true }).fill(script);
+  await page.getByRole("button", { name: "コメントを投稿" }).click();
+  await expect(page.getByText(script, { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => Object.hasOwn(window, "ticketXss") || Object.hasOwn(window, "commentXss"))).toBe(false);
+  await page.goto(`/projects/${project.id}/board`);
+  await page.getByLabel("状態変更: API仕様更新完了", { exact: true }).selectOption("in_progress");
+  await expect(page.getByRole("region", { name: "in_progress", exact: true }).getByRole("link", { name: "API仕様更新完了" })).toBeVisible();
+  await expect(page.getByLabel("状態変更: API仕様更新完了", { exact: true })).toBeEnabled();
+  await page.getByLabel("状態変更: API仕様更新完了", { exact: true }).selectOption("done");
+  await expect(page.getByLabel("状態変更: API仕様更新完了", { exact: true })).toBeEnabled();
+  await page.reload();
+  await expect(page.getByRole("region", { name: "done", exact: true }).getByRole("link", { name: "API仕様更新完了" })).toBeVisible();
+  await page.goto(ticketUrl);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "チケットを削除", exact: true }).click();
+  await expect(page).toHaveURL(`/projects/${project.id}/tickets`);
+  await expect(page.getByRole("link", { name: "API仕様更新完了", exact: true })).toHaveCount(0);
+  await page.goto(ticketUrl);
+  await expect(page.getByRole("heading", { name: "404 対象が見つかりません" })).toBeVisible();
+});
+
+test("コメント変更APIは公開しない", async ({ request }) => {
+  const response = await request.patch("/api/tickets/00000000-0000-4000-8000-000000000000/comments", { data: { content: "tamper" } });
+  expect(response.status()).toBe(405);
+});

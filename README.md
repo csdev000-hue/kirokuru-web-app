@@ -148,3 +148,11 @@ scripts/ ops/ infra/   スクリプト・運用・インフラ用
 新規Migration `0001_phase_03_organization_soft_delete.sql` は組織の論理削除日時を追加します。開発用DBへの適用後に利用してください。Projectが存在する組織は削除できず、Projectの削除操作はarchiveとして履歴を保持します。業務Write APIでは`Origin`が`AUTH_URL`と一致する必要があります。
 
 変更ファイル、削除方針、認可・監査・検証結果、Phase 4への引継ぎは[Phase 3実装補足](docs/design/org-project-implementation.md)を参照してください。
+
+## Phase 4 Ticket / Comments / Kanban
+
+Project詳細からチケット一覧・カンバンへ移動できます。owner/memberはTicket作成・編集・論理削除とコメント投稿、viewerは参照のみ可能です。検索・絞り込み・並び替え・ページング、Project所属メンバーへの担当者設定に対応しています。
+
+KanbanではStatusメニューで状態を変更します。失敗時は元の状態へ戻します。archived Projectは参照のみです。追加Migrationや依存Libraryはありません。
+
+API・削除方針・検証・変更ファイル・Phase 5への引継ぎは[Phase 4実装補足](docs/design/ticket-implementation.md)を参照してください。
