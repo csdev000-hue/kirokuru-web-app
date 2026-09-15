@@ -15,6 +15,13 @@
       "when": 1789408774058,
       "tag": "0001_phase_03_organization_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789487955063,
+      "tag": "0002_phase_05_meeting_constraints",
+      "breakpoints": true
     }
   ]
 }

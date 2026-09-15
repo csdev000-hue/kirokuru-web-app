@@ -156,3 +156,11 @@ Project詳細からチケット一覧・カンバンへ移動できます。owne
 KanbanではStatusメニューで状態を変更します。失敗時は元の状態へ戻します。archived Projectは参照のみです。追加Migrationや依存Libraryはありません。
 
 API・削除方針・検証・変更ファイル・Phase 5への引継ぎは[Phase 4実装補足](docs/design/ticket-implementation.md)を参照してください。
+
+## Phase 5 Meeting / Participant / Transcript
+
+Project詳細の「会議一覧」から会議を作成できます。作成者はhostとして登録され、owner/memberは参加者管理・手動の文字起こし登録／編集・会議状態の変更が可能です。viewer、処理中・完了済み会議、archived Projectの編集は制限されます。
+
+追加Migration `0002_phase_05_meeting_constraints.sql` は内部参加者の重複とTranscriptの不正時刻・連番を防止します。安全な開発用DBに適用後に利用してください。
+
+AI向けの認可付きContext取得まで実装しています。録音・LiveKit・音声認識・AI生成は未実装です。変更ファイル、API仕様、状態遷移・削除・監査方針は[Phase 5実装補足](docs/design/meeting-implementation.md)を参照してください。

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
-import { eq, getTableName, is, sql } from "drizzle-orm";
+import { eq, getTableName, is, isNotNull, sql } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import * as s from "../../lib/db/schema";
@@ -151,7 +151,7 @@ it("任意ユーザー参照は削除時にSET NULLし記録を残す", async ()
   await context.db.update(s.tickets).set({ assigneeId: user.id });
   await context.db.update(s.ticketCandidates).set({ assigneeId: user.id });
   await context.db.update(s.meetingTranscripts).set({ speakerUserId: user.id });
-  await context.db.update(s.meetingParticipants).set({ userId: user.id });
+  await context.db.update(s.meetingParticipants).set({ userId: user.id }).where(isNotNull(s.meetingParticipants.userId));
   await context.db.update(s.auditLogs).set({ userId: user.id });
   await context.db.delete(s.users).where(eq(s.users.id, user.id));
   expect((await context.db.select().from(s.tickets))[0].assigneeId).toBeNull();
@@ -214,7 +214,7 @@ it("実DBのPK/FK/CHECK/UNIQUE/Index型と削除方針を確認", async () => {
   expect(constraints.filter((row) => row.contype === "p")).toHaveLength(14);
   expect(constraints.filter((row) => row.contype === "f")).toHaveLength(30);
   expect(constraints.filter((row) => row.contype === "u")).toHaveLength(6);
-  expect(constraints.filter((row) => row.contype === "c")).toHaveLength(17);
+  expect(constraints.filter((row) => row.contype === "c")).toHaveLength(19);
   expect(constraints.filter((row) => row.contype === "f").every((row) => ["r", "n"].includes(row.confdeltype))).toBe(true);
   const indexes = await context.db.execute<{ indexname: string }>(sql`SELECT indexname FROM pg_indexes WHERE schemaname = 'public'`);
   expect(indexes.filter((row) => row.indexname.startsWith("idx_"))).toHaveLength(14);

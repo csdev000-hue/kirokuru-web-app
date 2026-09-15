@@ -1,0 +1,3 @@
+CREATE UNIQUE INDEX "uq_participant_user" ON "meeting_participants" USING btree ("meeting_id","user_id") WHERE "meeting_participants"."user_id" is not null;--> statement-breakpoint
+ALTER TABLE "meeting_transcripts" ADD CONSTRAINT "meeting_transcripts_time_order_check" CHECK ("meeting_transcripts"."ended_at" is null or "meeting_transcripts"."ended_at" >= "meeting_transcripts"."started_at");--> statement-breakpoint
+ALTER TABLE "meeting_transcripts" ADD CONSTRAINT "meeting_transcripts_sequence_positive_check" CHECK ("meeting_transcripts"."sequence_no" >= 1);

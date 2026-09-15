@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, uuid, varchar, text, timestamp, numeric, integer, bigint, jsonb, check, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, text, timestamp, numeric, integer, bigint, jsonb, check, index, unique, uniqueIndex } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { projects } from "./projects";
 import { createdAt, updatedAt, type JsonValue } from "./shared";
@@ -29,6 +29,7 @@ export const meetingParticipants = pgTable("meeting_participants", {
   leftAt: timestamp("left_at", { withTimezone: true }),
 }, (t) => [
   check("meeting_participants_role_check", sql`${t.role} in ('host', 'participant')`),
+  uniqueIndex("uq_participant_user").on(t.meetingId, t.userId).where(sql`${t.userId} is not null`),
   index("idx_participants_meeting").on(t.meetingId),
 ]);
 
@@ -43,6 +44,8 @@ export const meetingTranscripts = pgTable("meeting_transcripts", {
   sequenceNo: integer("sequence_no").notNull(),
   createdAt: createdAt(),
 }, (t) => [
+  check("meeting_transcripts_time_order_check", sql`${t.endedAt} is null or ${t.endedAt} >= ${t.startedAt}`),
+  check("meeting_transcripts_sequence_positive_check", sql`${t.sequenceNo} >= 1`),
   unique("uq_transcript_sequence").on(t.meetingId, t.sequenceNo),
   check("meeting_transcripts_started_at_check", sql`${t.startedAt} >= 0`),
   check("meeting_transcripts_ended_at_check", sql`${t.endedAt} >= 0`),
