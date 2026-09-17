@@ -1,3 +1,4 @@
+import { startBedrockServer } from "./bedrock-server";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { encode } from "next-auth/jwt";
@@ -7,7 +8,9 @@ import { seedTestDatabase } from "../fixtures/db";
 
 // Only this local test process creates mock sessions. Nothing is imported by app/.
 const database = await createTestDatabase({ tls: true });
+let bedrock: Awaited<ReturnType<typeof startBedrockServer>> | undefined;
 try {
+  bedrock = await startBedrockServer();
   await migrate(database.db, { migrationsFolder: "drizzle/migrations" });
   const fixture = await seedTestDatabase(database);
   const secret = randomBytes(48).toString("base64url");
@@ -20,6 +23,7 @@ try {
       AUTH_URL: "http://127.0.0.1:3100", AUTH_TRUST_HOST: "true", AUTH_SECRET: secret,
       AUTH_GOOGLE_ID: "local-e2e-client", AUTH_GOOGLE_SECRET: randomBytes(32).toString("hex"),
       E2E_SESSION_TOKEN: token,
+      AWS_ENDPOINT_URL_BEDROCK_RUNTIME: bedrock.endpoint, AWS_REGION: "ap-northeast-1", BEDROCK_MODEL_ID: "local-e2e-model", AWS_ACCESS_KEY_ID: "local-test", AWS_SECRET_ACCESS_KEY: "local-test", AWS_SESSION_TOKEN: "", AWS_EC2_METADATA_DISABLED: "true",
     },
   });
   const stop = () => child.kill("SIGTERM");
@@ -30,5 +34,6 @@ try {
     child.once("exit", (code) => resolve(code ?? 1));
   });
 } finally {
+  await bedrock?.close();
   await database.close();
 }

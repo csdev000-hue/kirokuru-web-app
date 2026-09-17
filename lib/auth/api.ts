@@ -5,12 +5,12 @@ import type { CurrentUser } from "./types";
 import { AccessError } from "@/lib/permissions/errors";
 import { createInternalErrorResponse } from "@/lib/errors";
 import { logSecurityEvent } from "@/lib/security/logging";
-export function withCurrentUser(handler: (user: CurrentUser) => Promise<Response> | Response) {
+export function withCurrentUser(handler: (user: CurrentUser, requestId: string) => Promise<Response> | Response) {
   return async () => {
     const requestId = crypto.randomUUID();
     try {
       const user = await requireCurrentUser();
-      const response = await handler(user);
+      const response = await handler(user, requestId);
       response.headers.set("Cache-Control", "no-store");
       response.headers.set("X-Request-Id", requestId);
       return response;

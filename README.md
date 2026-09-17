@@ -121,7 +121,7 @@ scripts/ ops/ infra/   スクリプト・運用・インフラ用
 - DB・環境変数・Bedrock・S3・LiveKitクライアントは`server-only`でClient Componentからのimportを禁止しています。
 - ブラウザはNext.jsのAPIを経由します。AWSキー、DB接続文字列、LiveKit API SecretをpropsやAPI応答へ渡しません。
 - 設定エラーはキー名のみを表示します。未知の内部例外は共通エラー応答に変換し、Stack TraceやSQL・Secretを返しません。
-- Bedrockの`generateStructured<T>`は未実装エラーを返す骨組みです。AI呼び出し・署名付きURL発行・Token発行は後続Phaseで実装します。
+- Bedrockの`generateStructured<T>`はPhase 6で実装しています。署名付きURL発行・Token発行は後続Phaseで実装します。
 - Production環境への接続・Migration・DeployはPhase 0〜2の対象外です。
 
 作業前に`AGENTS.md`、作業するPhaseの`docs/phases/`仕様書、関連設計書を確認してください。
@@ -163,4 +163,13 @@ Project詳細の「会議一覧」から会議を作成できます。作成者�
 
 追加Migration `0002_phase_05_meeting_constraints.sql` は内部参加者の重複とTranscriptの不正時刻・連番を防止します。安全な開発用DBに適用後に利用してください。
 
-AI向けの認可付きContext取得まで実装しています。録音・LiveKit・音声認識・AI生成は未実装です。変更ファイル、API仕様、状態遷移・削除・監査方針は[Phase 5実装補足](docs/design/meeting-implementation.md)を参照してください。
+AI向けの認可付きContext取得まで実装しています。録音・LiveKit・音声認識は未実装です。AI生成はPhase 6で実装しています。変更ファイル、API仕様、状態遷移・削除・監査方針は[Phase 5実装補足](docs/design/meeting-implementation.md)を参照してください。
+
+
+## Phase 6 AI Minutes
+
+会議詳細の「AI議事録を確認」から、owner/memberが議事録を生成・編集・承認できます。全項目から根拠の発言へ移動でき、承認済みVersionは閲覧専用です。再生成は旧版を保持して新Versionを追加します。
+
+開発用DBにMigration `0003_phase_06_minutes_generation.sql`を適用し、開発用の`AWS_REGION`・`BEDROCK_MODEL_ID`とサーバーのAWS認証を設定してください。モデルIDは固定していません。入力上限・タイムアウトは`.env.example`を参照してください。テストはローカルDBとBedrock Mockで動作します。
+
+API・検証・Retry・競合・長文上限・監査・Phase 7への前提は[Phase 6実装補足](docs/ai/minutes-implementation.md)を参照してください。AI Candidate生成・Ticket登録はPhase 6の対象外です。

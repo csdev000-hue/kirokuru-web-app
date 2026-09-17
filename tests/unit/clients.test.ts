@@ -61,10 +61,10 @@ describe("server clients (network mocked)", () => {
     expect(mocks.liveKit).toHaveBeenCalledWith("https://example.invalid/", "unit-test-key", "unit-test-secret");
   });
 
-  it("AI生成は成功を偽装せず未実装エラーを返す", async () => {
+  it("AI設定不足を安全なエラーに変換する", async () => {
+    vi.stubEnv("BEDROCK_MODEL_ID", "");
     const { generateStructured } = await import("@/lib/bedrock/client");
-    await expect(generateStructured({ systemPrompt: "test", userPrompt: "test", schema: z.object({}) }))
-      .rejects.toThrow("not implemented in Phase 0");
+    await expect(generateStructured({ systemPrompt: "test", userPrompt: "test", schema: z.object({}) })).rejects.toMatchObject({ code: "AI_PROVIDER_ERROR" });
     expect(mocks.bedrock).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,13 @@
+import { z } from "zod";
+import { sourceEvidenceSchema } from "./common";
+export const MINUTES_SCHEMA_VERSION = "1.0";
+export const minutesItemSchema = z.object({ title: z.string().trim().min(1).max(300), detail: z.string().trim().min(1).max(3000), source_evidence: z.array(sourceEvidenceSchema).min(1).max(10) }).strict();
+export const decisionSchema = minutesItemSchema;
+export const issueSchema = minutesItemSchema;
+export const pendingItemSchema = minutesItemSchema;
+export const actionItemSchema = minutesItemSchema.extend({ assignee: z.object({ user_id: z.uuid().nullable(), display_name: z.string().trim().min(1).max(100) }).strict().nullable(), due_date: z.iso.date().nullable() }).strict();
+export const minutesContentSchema = z.object({ summary: z.string().trim().min(1).max(5000), decisions: z.array(minutesItemSchema).max(100), action_items: z.array(actionItemSchema).max(100), issues: z.array(minutesItemSchema).max(100), pending_items: z.array(minutesItemSchema).max(100) }).strict();
+export const minutesAIResultSchema = minutesContentSchema.extend({ schema_version: z.literal(MINUTES_SCHEMA_VERSION), meeting_id: z.uuid(), language: z.literal("ja") }).strict();
+export type MinutesAIResult = z.infer<typeof minutesAIResultSchema>;
+export type MinutesItem = z.infer<typeof minutesItemSchema>;
+export type ActionItem = z.infer<typeof actionItemSchema>;

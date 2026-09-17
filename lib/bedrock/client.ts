@@ -7,11 +7,10 @@ let client: BedrockRuntimeClient | undefined;
 
 export function getBedrockClient() {
   const env = getBedrockEnv();
-  return client ??= new BedrockRuntimeClient({ region: env.AWS_REGION });
+  return client ??= new BedrockRuntimeClient({ region: env.AWS_REGION, maxAttempts: 1 });
 }
 
-export async function generateStructured<T>(options: GenerateStructuredOptions<T>): Promise<T> {
-  // TODO Phase 6: invoke Bedrock and validate the untrusted response with options.schema.
-  void options;
-  throw new Error("Structured generation is not implemented in Phase 0.");
+export async function generateStructured<T>(options: GenerateStructuredOptions<T>) {
+  const { createStructuredAIClient } = await import("./structured-ai-client");
+  return createStructuredAIClient().generateStructured(options);
 }

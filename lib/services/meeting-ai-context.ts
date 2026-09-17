@@ -7,7 +7,7 @@ import { BusinessError } from "@/lib/api/errors";
 import { contextMembers } from "./meeting-common";
 import { transcriptOutput } from "./meeting-transcript-service";
 /** Server-only, authorized complete snapshot. No caller-provided context and no AI/provider call. */
-export async function loadMeetingAIContext(userId: string, meetingId: string, db = getDb()) {
+export async function loadMeetingAIContext(userId: string, meetingId: string, db: Pick<ReturnType<typeof getDb>, "transaction"> = getDb()) {
  return db.transaction(async (tx) => {
   const access = await requireMeetingAccess({ userId, meetingId, minimumRole: "member" }, tx);
   const [meeting] = await tx.select({ id: meetings.id, projectId: meetings.projectId, title: meetings.title, meetingDate: meetings.meetingDate, status: meetings.status }).from(meetings).where(eq(meetings.id, meetingId));

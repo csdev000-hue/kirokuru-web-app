@@ -1,0 +1,20 @@
+import { expect, test } from "@playwright/test";
+test("AI Minutes generation → evidence → edit → approve → new version", async ({ page, context }) => {
+ const token = process.env.E2E_SESSION_TOKEN; if (!token) throw new Error("Missing test session");
+ await context.addCookies([{ name: "authjs.session-token", value: token, domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
+ const headers = { origin: "http://127.0.0.1:3100" };
+ const organizations = (await (await context.request.get("/api/organizations")).json()).data;
+ const organizationId = organizations.find((o: { name: string }) => o.name === "Organization A").id;
+ const project = (await (await context.request.post("/api/projects", { headers, data: { name: "Minutes E2E", organizationId } })).json()).data;
+ const meeting = (await (await context.request.post(`/api/projects/${project.id}/meetings`, { headers, data: { title: "AI会議", meetingDate: "2026-09-16T01:00:00Z" } })).json()).data;
+ const transcript = await context.request.post(`/api/meetings/${meeting.id}/transcripts`, { headers, data: { speakerName: "発言者", startedAt: 12, endedAt: 18, text: "API仕様を確認して更新する。", sequenceNo: 1 } }); expect(transcript.status()).toBe(201);
+ await page.goto(`/meetings/${meeting.id}/minutes`); await expect(page.getByText("AI議事録はまだ生成されていません")).toBeVisible();
+ await page.getByRole("button", { name: "AI議事録を生成", exact: true }).click(); await expect(page.getByRole("heading", { name: "Version 1 · review" })).toBeVisible({ timeout: 20000 });
+ await page.getByRole("link", { name: /根拠を確認/ }).first().click(); await expect(page.locator("li:target")).toContainText("API仕様を確認して更新する。");
+ await page.goto(`/meetings/${meeting.id}/minutes`); await page.getByLabel("要約", { exact: true }).fill("<script>window.minutesXss=true</script> 確認済み要約");
+ await expect(page.getByRole("button", { name: "内容を確認して承認" })).toBeDisabled();
+ await page.getByRole("button", { name: "議事録を保存", exact: true }).click(); await expect(page.getByRole("button", { name: "内容を確認して承認" })).toBeEnabled();
+ await page.getByRole("button", { name: "内容を確認して承認" }).click(); await expect(page.getByRole("heading", { name: "Version 1 · approved" })).toBeVisible(); await expect(page.getByLabel("要約", { exact: true })).toBeDisabled(); expect(await page.evaluate(() => Object.hasOwn(window, "minutesXss"))).toBe(false);
+ await page.getByRole("button", { name: "新しいVersionを再生成" }).click(); await expect(page.getByRole("heading", { name: "Version 2 · review" })).toBeVisible();
+ await page.getByRole("link", { name: "Version 1 · approved" }).click(); await expect(page.getByLabel("要約", { exact: true })).toHaveValue("<script>window.minutesXss=true</script> 確認済み要約");
+});

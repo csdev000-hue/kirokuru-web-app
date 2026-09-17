@@ -19,6 +19,7 @@ export async function lockMeeting(userId: string, meetingId: string, db: Meeting
  await lockActiveProject(access.projectId, db);
  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId)).for("update");
  if (!meeting) throw new AccessError("RESOURCE_NOT_FOUND");
+ if (meeting.minutesGenerationId && meeting.minutesGenerationExpiresAt && meeting.minutesGenerationExpiresAt > new Date()) throw new BusinessError("MINUTES_GENERATION_CONFLICT", 409, "議事録を生成中です。");
  if (editing) assertMeetingEditable(meeting.status);
  return { access, meeting };
 }

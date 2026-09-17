@@ -7,6 +7,8 @@ import { createdAt, updatedAt, type JsonValue } from "./shared";
 export const meetings = pgTable("meetings", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "restrict" }),
+  minutesGenerationId: uuid("minutes_generation_id"),
+  minutesGenerationExpiresAt: timestamp("minutes_generation_expires_at", { withTimezone: true }),
   title: varchar("title", { length: 200 }).notNull(),
   meetingDate: timestamp("meeting_date", { withTimezone: true }).notNull(),
   status: varchar("status", { length: 20, enum: ["scheduled", "recording", "processing", "completed", "failed"] }).notNull().default("scheduled"),
@@ -68,6 +70,7 @@ export const meetingRecordings = pgTable("meeting_recordings", {
 export const meetingMinutes = pgTable("meeting_minutes", {
   id: uuid("id").primaryKey().defaultRandom(),
   meetingId: uuid("meeting_id").notNull().references(() => meetings.id, { onDelete: "restrict" }),
+  generationKey: uuid("generation_key"),
   version: integer("version").notNull().default(1),
   status: varchar("status", { length: 20, enum: ["draft", "review", "approved"] }).notNull().default("draft"),
   summary: text("summary"),
@@ -75,7 +78,7 @@ export const meetingMinutes = pgTable("meeting_minutes", {
   actionItems: jsonb("action_items").$type<JsonValue[]>().default([]),
   issues: jsonb("issues").$type<JsonValue[]>().default([]),
   pendingItems: jsonb("pending_items").$type<JsonValue[]>().default([]),
-  aiModel: varchar("ai_model", { length: 100 }),
+  aiModel: varchar("ai_model", { length: 2048 }),
   aiRawOutput: jsonb("ai_raw_output").$type<JsonValue>(),
   promptVersion: varchar("prompt_version", { length: 50 }),
   schemaVersion: varchar("schema_version", { length: 50 }),
@@ -83,6 +86,7 @@ export const meetingMinutes = pgTable("meeting_minutes", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
+  uniqueIndex("uq_minutes_generation_key").on(t.meetingId, t.generationKey).where(sql`${t.generationKey} is not null`),
   unique("uq_minutes_version").on(t.meetingId, t.version),
   check("meeting_minutes_version_check", sql`${t.version} >= 1`),
   check("meeting_minutes_status_check", sql`${t.status} in ('draft', 'review', 'approved')`),
