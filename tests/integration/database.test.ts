@@ -30,7 +30,7 @@ afterAll(async () => { if (context) await context.close(); }, 30_000);
 beforeEach(async () => { await context.db.execute(sql`BEGIN`); });
 afterEach(async () => { await context.db.execute(sql`ROLLBACK`); });
 
-it("生成Migrationは14テーブルを作成し再適用してもデータを壊さない", async () => {
+it("生成Migrationは15テーブルを作成し再適用してもデータを壊さない", async () => {
   const tableRows = await context.db.execute<{ table_name: string }>(sql`
     SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
   `);
@@ -211,10 +211,10 @@ it("実DBのPK/FK/CHECK/UNIQUE/Index型と削除方針を確認", async () => {
   const constraints = await context.db.execute<{ contype: string; confdeltype: string }>(sql`
     SELECT c.contype, c.confdeltype FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public'
   `);
-  expect(constraints.filter((row) => row.contype === "p")).toHaveLength(14);
-  expect(constraints.filter((row) => row.contype === "f")).toHaveLength(30);
+  expect(constraints.filter((row) => row.contype === "p")).toHaveLength(15);
+  expect(constraints.filter((row) => row.contype === "f")).toHaveLength(32);
   expect(constraints.filter((row) => row.contype === "u")).toHaveLength(6);
-  expect(constraints.filter((row) => row.contype === "c")).toHaveLength(19);
+  expect(constraints.filter((row) => row.contype === "c")).toHaveLength(20);
   expect(constraints.filter((row) => row.contype === "f").every((row) => ["r", "n"].includes(row.confdeltype))).toBe(true);
   const indexes = await context.db.execute<{ indexname: string }>(sql`SELECT indexname FROM pg_indexes WHERE schemaname = 'public'`);
   expect(indexes.filter((row) => row.indexname.startsWith("idx_"))).toHaveLength(14);

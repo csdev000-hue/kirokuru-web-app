@@ -12,7 +12,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
  const { version } = await searchParams; const selected = version === undefined ? versions[0] : versions.find((v) => String(v.version) === version);
  const minutes = selected ? await pageResource(() => getMinutes(user.id, selected.id)) : undefined;
  const canWrite = project.role !== "viewer" && project.status === "active";
- return <main><Link href={`/meetings/${id}`}>会議に戻る</Link><h1>AI議事録</h1><p>{meeting.title}</p><p>AIの出力を発言の根拠と照合し、人が確認してから承認してください。</p>
+ return <main><Link href={`/meetings/${id}`}>会議に戻る</Link><h1>AI議事録</h1><Link href={`/meetings/${id}/ticket-candidates${minutes ? `?minutesId=${minutes.id}` : ""}`}>AIチケット候補を確認</Link><p>{meeting.title}</p><p>AIの出力を発言の根拠と照合し、人が確認してから承認してください。</p>
  <nav aria-label="議事録の履歴">{versions.map((v) => <p key={v.id}><Link href={`?version=${v.version}`}>Version {v.version} · {v.status}</Link></p>)}</nav>
  {canWrite && meeting.transcriptCount > 0 && meeting.status !== "recording" && <GenerateMinutes meetingId={id} regenerate={versions.length > 0} />}
  {!meeting.transcriptCount && <p>議事録の生成には文字起こしが必要です。</p>}

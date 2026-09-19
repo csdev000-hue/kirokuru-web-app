@@ -173,3 +173,11 @@ AI向けの認可付きContext取得まで実装しています。録音・LiveK
 開発用DBにMigration `0003_phase_06_minutes_generation.sql`を適用し、開発用の`AWS_REGION`・`BEDROCK_MODEL_ID`とサーバーのAWS認証を設定してください。モデルIDは固定していません。入力上限・タイムアウトは`.env.example`を参照してください。テストはローカルDBとBedrock Mockで動作します。
 
 API・検証・Retry・競合・長文上限・監査・Phase 7への前提は[Phase 6実装補足](docs/ai/minutes-implementation.md)を参照してください。AI Candidate生成・Ticket登録はPhase 6の対象外です。
+
+## Phase 7 AI Ticket Candidate
+
+承認済み議事録から「AIチケット候補を確認」へ進み、候補の生成・編集・承認・却下ができます。再生成は元の候補とレビュー結果を保持します。承認だけでは正式Ticketは作成されません。
+
+開発用DBへ`0004_phase_07_candidate_generations.sql`を適用して利用してください。Bedrock設定・入力上限・RetryはPhase 6の処理を共用しています。候補が0件の生成結果も履歴・冪等性の対象になります。
+
+API、Phase仕様を優先した設計差分、競合対策、監査とPhase 8への引継ぎは[Phase 7実装補足](docs/ai/ticket-candidate-implementation.md)を参照してください。

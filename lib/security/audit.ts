@@ -4,10 +4,12 @@ import { getDb } from "@/lib/db/client";
 import { auditLogs } from "@/lib/db/schema";
 const auditSchema = z.object({
   organizationId: z.uuid(), userId: z.uuid().nullable(),
-  action: z.enum(["organization.delete", "project.archive", "project.delete", "organization.create", "organization.update", "organization.member.add", "organization.member.remove", "project.create", "project.update", "project.member.add", "project.member.remove", "ticket.comment.create", "ticket.create", "ticket.update", "ticket.delete", "meeting.update", "meeting.delete", "meeting.status.change", "meeting.participant.add", "meeting.participant.update", "meeting.participant.remove", "meeting.transcript.create", "meeting.transcript.bulk_create", "meeting.transcript.update", "meeting.transcript.delete", "meeting.create", "meeting.end", "ai.minutes.generate.failed", "minutes.update", "minutes.approve", "minutes.regenerate", "ai.minutes.generate", "ai.ticket.generate", "candidate.approve", "candidate.reject", "ticket.register"]),
+  action: z.enum(["ai.ticket_candidate.generate", "ai.ticket_candidate.generate.failed", "ticket_candidate.update", "ticket_candidate.approve", "ticket_candidate.reject", "ticket_candidate.regenerate", "organization.delete", "project.archive", "project.delete", "organization.create", "organization.update", "organization.member.add", "organization.member.remove", "project.create", "project.update", "project.member.add", "project.member.remove", "ticket.comment.create", "ticket.create", "ticket.update", "ticket.delete", "meeting.update", "meeting.delete", "meeting.status.change", "meeting.participant.add", "meeting.participant.update", "meeting.participant.remove", "meeting.transcript.create", "meeting.transcript.bulk_create", "meeting.transcript.update", "meeting.transcript.delete", "meeting.create", "meeting.end", "ai.minutes.generate.failed", "minutes.update", "minutes.approve", "minutes.regenerate", "ai.minutes.generate", "ai.ticket.generate", "candidate.approve", "candidate.reject", "ticket.register"]),
   resourceType: z.enum(["organization", "project", "ticket", "meeting", "participant", "transcript", "minutes", "candidate"]),
   resourceId: z.uuid().nullable(),
   metadata: z.object({
+    generationId: z.uuid().optional(),
+    candidateCount: z.number().int().min(0).max(50).optional(),
     minutesId: z.uuid().optional(),
     version: z.number().int().positive().optional(),
     modelId: z.string().min(1).max(2048).optional(),

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, uuid, varchar, text, date, timestamp, numeric, jsonb, check, index, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, text, date, timestamp, numeric, jsonb, check, index, uniqueIndex, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { projects } from "./projects";
 import { meetings, meetingMinutes } from "./meetings";
@@ -31,10 +31,26 @@ export const tickets = pgTable("tickets", {
   index("idx_tickets_due_date").on(t.dueDate),
 ]);
 
+export const candidateGenerations = pgTable("candidate_generations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  minutesId: uuid("minutes_id").notNull().references(() => meetingMinutes.id, { onDelete: "restrict" }),
+  requestKey: uuid("request_key").notNull(),
+  leaseToken: uuid("lease_token").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  status: varchar("status", { length: 20, enum: ["processing", "completed", "failed"] }).notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex("uq_candidate_generation_request").on(t.minutesId, t.requestKey),
+  uniqueIndex("uq_candidate_generation_processing").on(t.minutesId).where(sql`${t.status} = 'processing'`),
+  check("candidate_generations_status_check", sql`${t.status} in ('processing', 'completed', 'failed')`),
+]);
+
 export const ticketCandidates = pgTable("ticket_candidates", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "restrict" }),
   meetingId: uuid("meeting_id").notNull().references(() => meetings.id, { onDelete: "restrict" }),
+  generationId: uuid("generation_id").references(() => candidateGenerations.id, { onDelete: "restrict" }),
   minutesId: uuid("minutes_id").references(() => meetingMinutes.id, { onDelete: "restrict" }),
   title: varchar("title", { length: 300 }).notNull(),
   description: text("description"),
@@ -47,7 +63,7 @@ export const ticketCandidates = pgTable("ticket_candidates", {
   confidence: numeric("confidence", { precision: 5, scale: 4 }),
   status: varchar("status", { length: 20, enum: ["pending", "approved", "rejected", "registered"] }).notNull().default("pending"),
   registeredTicketId: uuid("registered_ticket_id").unique().references((): AnyPgColumn => tickets.id, { onDelete: "restrict" }),
-  aiModel: varchar("ai_model", { length: 100 }),
+  aiModel: varchar("ai_model", { length: 2048 }),
   promptVersion: varchar("prompt_version", { length: 50 }),
   schemaVersion: varchar("schema_version", { length: 50 }),
   createdAt: createdAt(),

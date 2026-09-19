@@ -3,7 +3,7 @@ import { minutesAIResultSchema, type MinutesAIResult, type MinutesItem, type Act
 import type { MinutesContext } from "../prompts/minutes-user";
 import { todayInJapan } from "@/lib/utils/ticket-date";
 const invalid = () => new BusinessError("AI_EVIDENCE_INVALID", 422, "議事録の根拠・担当者・会議情報が一致しません。");
-function explicitDates(text: string, meetingDate: Date) {
+export function explicitDates(text: string, meetingDate: Date) {
  const found = new Set(text.match(/\b\d{4}-\d{2}-\d{2}\b/g) ?? []);
  for (const match of text.matchAll(/(\d{4})年(\d{1,2})月(\d{1,2})日/g)) found.add(`${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`);
  const base = new Date(`${todayInJapan(meetingDate)}T00:00:00Z`);

@@ -49,8 +49,9 @@ export async function seedTestDatabase(context: TestDatabase) {
     const [minutes] = await db.insert(s.meetingMinutes).values({
       meetingId: meetingA.id, createdBy: ownerA.id, summary: "テスト用議事録",
     }).returning();
+    const [generation] = await db.insert(s.candidateGenerations).values({ minutesId: minutes.id, requestKey: crypto.randomUUID(), leaseToken: crypto.randomUUID(), expiresAt: new Date(0), status: "completed" }).returning();
     const [candidate] = await db.insert(s.ticketCandidates).values({
-      projectId: projectA.id, meetingId: meetingA.id, minutesId: minutes.id, title: "テスト用候補",
+      projectId: projectA.id, meetingId: meetingA.id, minutesId: minutes.id, generationId: generation.id, title: "テスト用候補",
       sourceTranscriptIds: [transcript.id], confidence: "0.5000",
     }).returning();
     const [ticket] = await db.insert(s.tickets).values({
