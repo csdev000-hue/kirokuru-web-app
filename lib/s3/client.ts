@@ -6,5 +6,5 @@ let client: S3Client | undefined;
 
 export function getS3Client() {
   const env = getS3Env();
-  return client ??= new S3Client({ region: env.AWS_REGION });
+  return client ??= new S3Client({ region: env.AWS_REGION, maxAttempts: 2, requestChecksumCalculation: "WHEN_REQUIRED", forcePathStyle: Boolean(process.env.AWS_ENDPOINT_URL_S3) });
 }

@@ -189,3 +189,9 @@ API、Phase仕様を優先した設計差分、競合対策、監査とPhase 8�
 登録はTicket作成・Candidate更新・監査を同一Transactionで実行します。同一候補への再送では既存Ticketを返し、論理削除後も二重作成しません。Ticket詳細から元の会議・議事録・候補・根拠発言を追跡できます。
 
 追加DB Migrationはありません。API・競合制御・冪等性・エラー・テストの詳細は[Phase 8実装補足](docs/design/ticket-registration-implementation.md)を参照してください。
+
+### Phase 9: Recording
+
+会議詳細から録音の直接アップロード、完了確認、再生・取得、削除を行えます。
+設定・API・S3/DB整合性・保持方針は [録音実装設計](docs/design/recording-implementation.md) を参照してください。
+S3の設定例は `infra/aws/` にあり、自動適用は行いません。

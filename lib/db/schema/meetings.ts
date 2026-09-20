@@ -61,6 +61,9 @@ export const meetingRecordings = pgTable("meeting_recordings", {
   fileSize: bigint("file_size", { mode: "bigint" }),
   durationSeconds: integer("duration_seconds"),
   status: varchar("status", { length: 20, enum: ["uploading", "uploaded", "processing", "completed", "failed"] }).notNull().default("uploading"),
+  uploadExpiresAt: timestamp("upload_expires_at", { withTimezone: true }),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [
   check("meeting_recordings_status_check", sql`${t.status} in ('uploading', 'uploaded', 'processing', 'completed', 'failed')`),

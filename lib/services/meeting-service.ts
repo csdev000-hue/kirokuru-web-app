@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, max, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, asc, count, max, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { meetings, meetingParticipants, meetingTranscripts, meetingRecordings, meetingMinutes, ticketCandidates, tickets, users } from "@/lib/db/schema";
 import { requireProjectMember, requireProjectViewer } from "@/lib/permissions/project";
@@ -31,7 +31,7 @@ export async function getMeeting(userId: string, meetingId: string, db: MeetingR
  if (!meeting) throw new AccessError("RESOURCE_NOT_FOUND");
  const participants = await db.select({ id: meetingParticipants.id, userId: meetingParticipants.userId, displayName: meetingParticipants.displayName, role: meetingParticipants.role, joinedAt: meetingParticipants.joinedAt, leftAt: meetingParticipants.leftAt }).from(meetingParticipants).where(eq(meetingParticipants.meetingId, meetingId)).orderBy(meetingParticipants.id);
  const [transcriptCount] = await db.select({ value: count(), lastSequenceNo: max(meetingTranscripts.sequenceNo) }).from(meetingTranscripts).where(eq(meetingTranscripts.meetingId, meetingId));
- const [recording] = await db.select({ id: meetingRecordings.id, status: meetingRecordings.status }).from(meetingRecordings).where(eq(meetingRecordings.meetingId, meetingId)).orderBy(desc(meetingRecordings.createdAt)).limit(1);
+ const [recording] = await db.select({ id: meetingRecordings.id, status: meetingRecordings.status }).from(meetingRecordings).where(and(eq(meetingRecordings.meetingId, meetingId), isNull(meetingRecordings.deletedAt))).orderBy(desc(meetingRecordings.createdAt)).limit(1);
  const [minutes] = await db.select({ id: meetingMinutes.id, version: meetingMinutes.version, status: meetingMinutes.status }).from(meetingMinutes).where(eq(meetingMinutes.meetingId, meetingId)).orderBy(desc(meetingMinutes.version)).limit(1);
  return { ...meeting, participants, transcriptCount: transcriptCount.value, lastSequenceNo: transcriptCount.lastSequenceNo ?? 0, recording: recording ?? null, minutes: minutes ?? null };
 }

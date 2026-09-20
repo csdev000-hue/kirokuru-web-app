@@ -1,3 +1,7 @@
+import { recordingListQuerySchema } from "@/lib/validators/recording";
+import { Recordings } from "@/components/meetings/recordings";
+import { listRecordings } from "@/lib/services/meeting-recording-service";
+import { getRecordingSettings } from "@/lib/s3/config";
 import Link from "next/link";
 import { requirePageUser } from "@/lib/auth/page";
 import { getProject, listProjectMembers } from "@/lib/services/project-service";
@@ -10,9 +14,14 @@ import { meetingTime, transcriptTimestamp } from "@/lib/utils/meeting-time";
 import { MeetingForm, MeetingActions, ParticipantForm, RemoveParticipant, Attendance, TranscriptForm, RemoveTranscript } from "@/components/meetings/forms";
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
  const user = await requirePageUser(); const { id } = await params; const meeting = await pageResource(() => getMeeting(user.id, id));
- const parsed = transcriptQuerySchema.safeParse(await searchParams);
+ const query = await searchParams;
+ const { recordingPage, ...transcriptQuery } = query;
+ const parsed = transcriptQuerySchema.safeParse(transcriptQuery);
  if (!parsed.success) return <main><h1>発言の表示条件を確認してください</h1><Link href={`/meetings/${id}`}>会議に戻る</Link></main>;
  const [project, members, transcriptPage] = await Promise.all([getProject(user.id, meeting.projectId), listProjectMembers(user.id, meeting.projectId), listTranscripts(user.id, id, parsed.data)]);
+ const recordingQuery = recordingListQuerySchema.safeParse({ page: recordingPage ?? 1 });
+ if (!recordingQuery.success) return <main><h1>録音の表示条件を確認してください</h1><Link href={`/meetings/${id}`}>会議に戻る</Link></main>;
+ const recordingList = await listRecordings(user.id, id, recordingQuery.data);
  const canWrite = project.role !== "viewer" && project.status === "active"; const editable = canWrite && editableMeeting(meeting.status); const transcriptEditable = editable && !meeting.minutes;
  return <main><Link href={`/projects/${meeting.projectId}/meetings`}>会議一覧へ</Link><h1>{meeting.title}</h1><p>{meetingTime(meeting.meetingDate)}（日本時間）· 状態: {meeting.status}</p>{meeting.status === "processing" && <p role="status">処理中の状態です。</p>}
  {editable && <details><summary>会議情報を編集</summary><MeetingForm key={meeting.updatedAt.toISOString()} projectId={meeting.projectId} meeting={{ id, title: meeting.title, meetingDate: meeting.meetingDate.toISOString() }} /></details>}
@@ -22,5 +31,6 @@ export default async function Page({ params, searchParams }: { params: Promise<{
  <section><h2>文字起こし</h2><p>全{meeting.transcriptCount}件</p>{transcriptPage.data.length ? <ol>{transcriptPage.data.map((t) => <li key={t.id} id={`transcript-${t.id}`}><p>{transcriptTimestamp(t.startedAt)} {t.speakerName}（発言順 {t.sequenceNo}）</p><p className="user-content">{t.text}</p>{transcriptEditable && <details><summary>発言を編集: {t.sequenceNo}</summary><TranscriptForm meetingId={id} members={members} nextSequence={meeting.lastSequenceNo + 1} transcript={t} /><RemoveTranscript meetingId={id} id={t.id} /></details>}</li>)}</ol> : <p>文字起こしはまだありません</p>}
  <nav>{parsed.data.fromSequence > 1 && <Link href={`/meetings/${id}`}>先頭へ</Link>}{transcriptPage.meta.nextSequence && <Link href={`?fromSequence=${transcriptPage.meta.nextSequence}`}>次の発言</Link>}</nav>
  {transcriptEditable && <><h3>文字起こしを追加</h3><TranscriptForm key={meeting.lastSequenceNo} meetingId={id} members={members} nextSequence={meeting.lastSequenceNo + 1} /></>}</section>
+ <Recordings meetingId={id} recordings={recordingList.data.map((r) => ({ ...r, createdAt: r.createdAt.toISOString(), uploadedAt: r.uploadedAt?.toISOString() ?? null }))} canWrite={canWrite} maxBytes={getRecordingSettings().MAX_RECORDING_FILE_SIZE_BYTES} page={recordingList.meta.page} nextPage={recordingList.meta.nextPage} />
  <section aria-label="関連情報"><Link href={`/meetings/${id}/ticket-candidates`}>AIチケット候補を確認</Link><Link href={`/meetings/${id}/minutes`}>AI議事録を確認</Link>{meeting.recording && <p>録音データあり（{meeting.recording.status}）</p>}{meeting.minutes && <p>議事録データあり（version {meeting.minutes.version}）</p>}</section></main>;
 }

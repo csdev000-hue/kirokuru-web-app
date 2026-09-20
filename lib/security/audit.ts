@@ -4,10 +4,13 @@ import { getDb } from "@/lib/db/client";
 import { auditLogs } from "@/lib/db/schema";
 const auditSchema = z.object({
   organizationId: z.uuid(), userId: z.uuid().nullable(),
-  action: z.enum(["ticket_candidate.register", "ticket.create.from_candidate", "ai.ticket_candidate.generate", "ai.ticket_candidate.generate.failed", "ticket_candidate.update", "ticket_candidate.approve", "ticket_candidate.reject", "ticket_candidate.regenerate", "organization.delete", "project.archive", "project.delete", "organization.create", "organization.update", "organization.member.add", "organization.member.remove", "project.create", "project.update", "project.member.add", "project.member.remove", "ticket.comment.create", "ticket.create", "ticket.update", "ticket.delete", "meeting.update", "meeting.delete", "meeting.status.change", "meeting.participant.add", "meeting.participant.update", "meeting.participant.remove", "meeting.transcript.create", "meeting.transcript.bulk_create", "meeting.transcript.update", "meeting.transcript.delete", "meeting.create", "meeting.end", "ai.minutes.generate.failed", "minutes.update", "minutes.approve", "minutes.regenerate", "ai.minutes.generate", "ai.ticket.generate", "candidate.approve", "candidate.reject", "ticket.register"]),
-  resourceType: z.enum(["organization", "project", "ticket", "meeting", "participant", "transcript", "minutes", "candidate"]),
+  action: z.enum(["recording.upload_url.issue", "recording.upload.complete", "recording.upload.failed", "recording.download_url.issue", "recording.delete", "ticket_candidate.register", "ticket.create.from_candidate", "ai.ticket_candidate.generate", "ai.ticket_candidate.generate.failed", "ticket_candidate.update", "ticket_candidate.approve", "ticket_candidate.reject", "ticket_candidate.regenerate", "organization.delete", "project.archive", "project.delete", "organization.create", "organization.update", "organization.member.add", "organization.member.remove", "project.create", "project.update", "project.member.add", "project.member.remove", "ticket.comment.create", "ticket.create", "ticket.update", "ticket.delete", "meeting.update", "meeting.delete", "meeting.status.change", "meeting.participant.add", "meeting.participant.update", "meeting.participant.remove", "meeting.transcript.create", "meeting.transcript.bulk_create", "meeting.transcript.update", "meeting.transcript.delete", "meeting.create", "meeting.end", "ai.minutes.generate.failed", "minutes.update", "minutes.approve", "minutes.regenerate", "ai.minutes.generate", "ai.ticket.generate", "candidate.approve", "candidate.reject", "ticket.register"]),
+  resourceType: z.enum(["recording", "organization", "project", "ticket", "meeting", "participant", "transcript", "minutes", "candidate"]),
   resourceId: z.uuid().nullable(),
   metadata: z.object({
+    recordingId: z.uuid().optional(),
+    contentType: z.string().max(100).optional(),
+    fileSize: z.number().int().nonnegative().optional(),
     candidateId: z.uuid().optional(),
     ticketId: z.uuid().optional(),
     requestId: z.uuid().optional(),
@@ -18,7 +21,7 @@ const auditSchema = z.object({
     modelId: z.string().min(1).max(2048).optional(),
     promptVersion: z.string().max(50).optional(),
     schemaVersion: z.string().max(50).optional(),
-    errorCode: z.string().regex(/^[A-Z_]+$/).max(80).optional(),
+    errorCode: z.string().regex(/^[A-Z0-9_]+$/).max(80).optional(),
     meetingId: z.uuid().optional(),
     from: z.enum(["scheduled", "recording", "processing", "completed", "failed"]).optional(),
     to: z.enum(["scheduled", "recording", "processing", "completed", "failed"]).optional(),

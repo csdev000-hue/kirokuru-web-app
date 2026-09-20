@@ -1,0 +1,8 @@
+{
+  "Rules": [{
+    "ID": "AbortIncompleteRecordingMultipartUploads",
+    "Status": "Enabled",
+    "Filter": { "Prefix": "organizations/" },
+    "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+  }]
+}
