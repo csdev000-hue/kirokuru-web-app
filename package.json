@@ -24,14 +24,18 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "test:security": "vitest run tests/security",
-    "test:s3": "vitest run tests/integration/s3.test.ts"
+    "test:s3": "vitest run tests/integration/s3.test.ts",
+    "test:livekit": "vitest run tests/integration/livekit-provider.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1131.0",
     "@aws-sdk/client-s3": "^3.1131.0",
     "@aws-sdk/s3-request-presigner": "^3.1131.0",
+    "@livekit/components-react": "^2.9.24",
+    "@livekit/components-styles": "^1.2.0",
     "@next/env": "^16.3.5",
     "drizzle-orm": "^0.45.2",
+    "livekit-client": "^2.22.3",
     "livekit-server-sdk": "^2.19.0",
     "next": "^16.3.5",
     "next-auth": "5.0.0-beta.32",

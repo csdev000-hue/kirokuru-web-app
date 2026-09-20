@@ -58,7 +58,7 @@ describe("server clients (network mocked)", () => {
     vi.stubEnv("LIVEKIT_API_SECRET", "unit-test-secret");
     const { getLiveKitClient } = await import("@/lib/livekit/client");
     expect(getLiveKitClient()).toBe(getLiveKitClient());
-    expect(mocks.liveKit).toHaveBeenCalledWith("https://example.invalid/", "unit-test-key", "unit-test-secret");
+    expect(mocks.liveKit).toHaveBeenCalledWith("https://example.invalid/", "unit-test-key", "unit-test-secret", { requestTimeout: 10, failover: false });
   });
 
   it("AI設定不足を安全なエラーに変換する", async () => {

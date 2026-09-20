@@ -195,3 +195,8 @@ API、Phase仕様を優先した設計差分、競合対策、監査とPhase 8�
 会議詳細から録音の直接アップロード、完了確認、再生・取得、削除を行えます。
 設定・API・S3/DB整合性・保持方針は [録音実装設計](docs/design/recording-implementation.md) を参照してください。
 S3の設定例は `infra/aws/` にあり、自動適用は行いません。
+
+### Phase 10: Online Meeting
+
+LiveKitの環境別設定と `LIVE_MEETING_ENABLED=true` により、会議詳細からオンライン会議を開始・参加・終了できます。viewerは視聴専用です。
+API・Migration・障害時の再試行・検証範囲は [オンライン会議実装設計](docs/design/live-meeting-implementation.md) を参照してください。

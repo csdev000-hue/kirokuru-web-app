@@ -27,6 +27,7 @@ export async function generateMeetingMinutes(input: { userId: string; meetingId:
   const [meeting] = await tx.select().from(meetings).where(eq(meetings.id, input.meetingId)).for("update");
   const [previous] = await tx.select({ id: meetingMinutes.id }).from(meetingMinutes).where(and(eq(meetingMinutes.meetingId, meeting.id), eq(meetingMinutes.generationKey, key))).limit(1);
   if (previous) return { cachedId: previous.id };
+  if (meeting.liveStartedAt && (!meeting.liveEndedAt || meeting.status !== "completed")) throw new BusinessError("MEETING_INVALID_STATUS", 409, "オンライン会議を終了してから議事録を生成してください。");
   if (meeting.minutesGenerationId && meeting.minutesGenerationExpiresAt && meeting.minutesGenerationExpiresAt > new Date()) throw conflict();
   const [latest] = await tx.select({ id: meetingMinutes.id }).from(meetingMinutes).where(eq(meetingMinutes.meetingId, meeting.id)).orderBy(desc(meetingMinutes.version)).limit(1);
   if (latest && !input.regenerate) return { cachedId: latest.id };

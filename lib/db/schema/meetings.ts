@@ -7,6 +7,8 @@ import { createdAt, updatedAt, type JsonValue } from "./shared";
 export const meetings = pgTable("meetings", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "restrict" }),
+  liveStartedAt: timestamp("live_started_at", { withTimezone: true }),
+  liveEndedAt: timestamp("live_ended_at", { withTimezone: true }),
   minutesGenerationId: uuid("minutes_generation_id"),
   minutesGenerationExpiresAt: timestamp("minutes_generation_expires_at", { withTimezone: true }),
   title: varchar("title", { length: 200 }).notNull(),

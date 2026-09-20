@@ -1,3 +1,5 @@
+import { liveMeetingEnabled } from "@/lib/livekit/config";
+import { LiveStart } from "@/components/meetings/live-actions";
 import { recordingListQuerySchema } from "@/lib/validators/recording";
 import { Recordings } from "@/components/meetings/recordings";
 import { listRecordings } from "@/lib/services/meeting-recording-service";
@@ -25,7 +27,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
  const canWrite = project.role !== "viewer" && project.status === "active"; const editable = canWrite && editableMeeting(meeting.status); const transcriptEditable = editable && !meeting.minutes;
  return <main><Link href={`/projects/${meeting.projectId}/meetings`}>会議一覧へ</Link><h1>{meeting.title}</h1><p>{meetingTime(meeting.meetingDate)}（日本時間）· 状態: {meeting.status}</p>{meeting.status === "processing" && <p role="status">処理中の状態です。</p>}
  {editable && <details><summary>会議情報を編集</summary><MeetingForm key={meeting.updatedAt.toISOString()} projectId={meeting.projectId} meeting={{ id, title: meeting.title, meetingDate: meeting.meetingDate.toISOString() }} /></details>}
- {canWrite && <MeetingActions id={id} projectId={meeting.projectId} status={meeting.status} />}
+ {(liveMeetingEnabled() || meeting.liveStartedAt) && <section aria-label="オンライン会議の操作"><h2>オンライン会議</h2><p>通信のみを行い、自動録音はしません。</p>{canWrite && ["scheduled", "recording"].includes(meeting.status) && <LiveStart id={id} started={Boolean(meeting.liveStartedAt)} ending={Boolean(meeting.liveEndedAt)} />}{meeting.liveStartedAt && !meeting.liveEndedAt && meeting.status === "recording" && <Link href={`/meetings/${id}/live`}>オンライン会議に参加</Link>}</section>}
+ {canWrite && !meeting.liveStartedAt && <MeetingActions id={id} projectId={meeting.projectId} status={meeting.status} />}
  <section><h2>参加者</h2><ul>{meeting.participants.map((p) => <li key={p.id}><p>{p.displayName} · {p.role} · 参加: {p.joinedAt ? meetingTime(p.joinedAt) : "未記録"} · 退出: {p.leftAt ? meetingTime(p.leftAt) : "未記録"}</p>{editable && <details><summary>参加者を編集: {p.displayName}</summary><ParticipantForm meetingId={id} members={members} participant={p} /><RemoveParticipant meetingId={id} id={p.id} /></details>}</li>)}</ul>
  {editable && <><h3>参加者を追加</h3><ParticipantForm meetingId={id} members={members} />{meeting.participants.some((p) => p.userId === user.id) && <Attendance meetingId={id} />}</>}</section>
  <section><h2>文字起こし</h2><p>全{meeting.transcriptCount}件</p>{transcriptPage.data.length ? <ol>{transcriptPage.data.map((t) => <li key={t.id} id={`transcript-${t.id}`}><p>{transcriptTimestamp(t.startedAt)} {t.speakerName}（発言順 {t.sequenceNo}）</p><p className="user-content">{t.text}</p>{transcriptEditable && <details><summary>発言を編集: {t.sequenceNo}</summary><TranscriptForm meetingId={id} members={members} nextSequence={meeting.lastSequenceNo + 1} transcript={t} /><RemoveTranscript meetingId={id} id={t.id} /></details>}</li>)}</ol> : <p>文字起こしはまだありません</p>}

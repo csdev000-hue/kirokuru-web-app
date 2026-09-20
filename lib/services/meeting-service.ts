@@ -10,7 +10,7 @@ import { writeAuditLog } from "@/lib/security/audit";
 import { createMeetingSchema, updateMeetingSchema, meetingListQuerySchema, transitions, type MeetingStatus } from "@/lib/validators/meeting";
 import { assertMeetingEditable, lockMeeting, meetingValidation, type MeetingReadDb } from "./meeting-common";
 import { lockActiveProject } from "./ticket-service";
-const selection = { id: meetings.id, projectId: meetings.projectId, title: meetings.title, meetingDate: meetings.meetingDate, status: meetings.status, createdBy: { id: users.id, name: users.name }, createdAt: meetings.createdAt, updatedAt: meetings.updatedAt };
+const selection = { liveStartedAt: meetings.liveStartedAt, liveEndedAt: meetings.liveEndedAt, id: meetings.id, projectId: meetings.projectId, title: meetings.title, meetingDate: meetings.meetingDate, status: meetings.status, createdBy: { id: users.id, name: users.name }, createdAt: meetings.createdAt, updatedAt: meetings.updatedAt };
 export async function listMeetings(userId: string, projectId: string, input: unknown = {}, db = getDb()) {
  await requireProjectViewer({ userId, projectId }, db);
  const f = meetingValidation(meetingListQuerySchema, input);
@@ -54,6 +54,7 @@ export async function updateMeeting(userId: string, meetingId: string, input: un
  return db.transaction(async (tx) => {
   const { access, meeting } = await lockMeeting(userId, meetingId, tx, false);
   if (data.title !== undefined || data.meetingDate !== undefined) assertMeetingEditable(meeting.status);
+  if (data.status && data.status !== meeting.status && meeting.liveStartedAt) throw new BusinessError("MEETING_INVALID_STATUS", 409, "オンライン会議の終了操作を利用してください。");
   if (data.status) validateMeetingTransition(meeting.status, data.status);
   await tx.update(meetings).set({ ...(data.title !== undefined ? { title: data.title } : {}), ...(data.meetingDate ? { meetingDate: new Date(data.meetingDate) } : {}), ...(data.status ? { status: data.status } : {}) }).where(eq(meetings.id, meetingId));
   const base = { organizationId: access.organizationId, userId, resourceType: "meeting" as const, resourceId: meetingId };
@@ -65,7 +66,8 @@ export async function updateMeeting(userId: string, meetingId: string, input: un
 export const transitionMeetingStatus = (userId: string, meetingId: string, status: MeetingStatus, db = getDb()) => updateMeeting(userId, meetingId, { status }, db);
 export async function deleteMeeting(userId: string, meetingId: string, db = getDb()) {
  return db.transaction(async (tx) => {
-  const { access } = await lockMeeting(userId, meetingId, tx);
+  const { access, meeting } = await lockMeeting(userId, meetingId, tx);
+  if (meeting.liveStartedAt) throw new BusinessError("MEETING_NOT_EMPTY", 409, "オンライン会議の履歴は削除できません。");
   // Related data never cascades. A deleted Ticket still retains its source reference.
   const related = await tx.select({ value: sql<boolean>`exists(select 1 from ${meetingTranscripts} where ${meetingTranscripts.meetingId} = ${meetingId}) or exists(select 1 from ${meetingRecordings} where ${meetingRecordings.meetingId} = ${meetingId}) or exists(select 1 from ${meetingMinutes} where ${meetingMinutes.meetingId} = ${meetingId}) or exists(select 1 from ${ticketCandidates} where ${ticketCandidates.meetingId} = ${meetingId}) or exists(select 1 from ${tickets} where ${tickets.sourceMeetingId} = ${meetingId})` }).from(meetings).where(eq(meetings.id, meetingId));
   if (related[0].value) throw new BusinessError("MEETING_NOT_EMPTY", 409, "関連データが存在する会議は削除できません。");
