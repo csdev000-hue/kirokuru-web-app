@@ -1,10 +1,12 @@
+import { AUDIT_ACTIONS } from "./audit-actions";
+import { requestContext } from "@/lib/logging/context";
 import "server-only";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { auditLogs } from "@/lib/db/schema";
 const auditSchema = z.object({
   organizationId: z.uuid(), userId: z.uuid().nullable(),
-  action: z.enum(["meeting.live.end.request", "meeting.live.connection", "meeting.live.start", "meeting.live.token.issue", "meeting.live.join", "meeting.live.leave", "meeting.live.end", "meeting.live.failed", "recording.upload_url.issue", "recording.upload.complete", "recording.upload.failed", "recording.download_url.issue", "recording.delete", "ticket_candidate.register", "ticket.create.from_candidate", "ai.ticket_candidate.generate", "ai.ticket_candidate.generate.failed", "ticket_candidate.update", "ticket_candidate.approve", "ticket_candidate.reject", "ticket_candidate.regenerate", "organization.delete", "project.archive", "project.delete", "organization.create", "organization.update", "organization.member.add", "organization.member.remove", "project.create", "project.update", "project.member.add", "project.member.remove", "ticket.comment.create", "ticket.create", "ticket.update", "ticket.delete", "meeting.update", "meeting.delete", "meeting.status.change", "meeting.participant.add", "meeting.participant.update", "meeting.participant.remove", "meeting.transcript.create", "meeting.transcript.bulk_create", "meeting.transcript.update", "meeting.transcript.delete", "meeting.create", "meeting.end", "ai.minutes.generate.failed", "minutes.update", "minutes.approve", "minutes.regenerate", "ai.minutes.generate", "ai.ticket.generate", "candidate.approve", "candidate.reject", "ticket.register"]),
+  action: z.enum(AUDIT_ACTIONS),
   resourceType: z.enum(["recording", "organization", "project", "ticket", "meeting", "participant", "transcript", "minutes", "candidate"]),
   resourceId: z.uuid().nullable(),
   metadata: z.object({
@@ -36,7 +38,7 @@ const auditSchema = z.object({
 }).strict();
 export type AuditInput = z.input<typeof auditSchema>;
 export async function writeAuditLog(input: AuditInput, db: Pick<ReturnType<typeof getDb>, "insert"> = getDb()) {
-  const parsed = auditSchema.safeParse(input);
+  const parsed = auditSchema.safeParse({ ...input, metadata: { ...input.metadata, requestId: requestContext.getStore()?.requestId ?? input.metadata?.requestId } });
   if (!parsed.success) throw new Error("Invalid audit event");
   const [row] = await db.insert(auditLogs).values(parsed.data).returning({ id: auditLogs.id });
   return row;

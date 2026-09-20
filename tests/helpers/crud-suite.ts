@@ -24,7 +24,7 @@ export function crudSuite(security = false) {
   beforeAll(async () => { context = await createTestDatabase(); await migrate(context.db, { migrationsFolder: "drizzle/migrations" }); fixture = await seedTestDatabase(context); }, 120_000);
   beforeEach(() => { vi.mocked(getDb).mockReturnValue(context.db); login(fixture.ownerA); vi.stubEnv("AUTH_URL", "http://localhost:3100"); vi.spyOn(console, "warn").mockImplementation(() => {}); });
   afterAll(async () => { if (context) await context.close(); }, 30_000);
-  it("ORG-T02 未認証は401", async () => { vi.mocked(requireCurrentUser).mockRejectedValue(new AccessError("UNAUTHENTICATED")); expect((await orgs.GET()).status).toBe(401); });
+  it("ORG-T02 未認証は401", async () => { vi.mocked(requireCurrentUser).mockRejectedValue(new AccessError("UNAUTHENTICATED")); expect((await orgs.GET(new Request("http://localhost:3100/api/organizations"))).status).toBe(401); });
   it("ORG-T03 / TENANT-T01 / SEC-ORG-01 別組織の全操作を拒否", async () => {
     for (const response of [await org.GET(request(), params(fixture.organizationB.id)), await org.PATCH(request("PATCH", { name: "Attack" }), params(fixture.organizationB.id)), await org.DELETE(request("DELETE"), params(fixture.organizationB.id)), await orgMembers.GET(request(), params(fixture.organizationB.id))]) expect(response.status).toBe(404);
   });
@@ -32,7 +32,7 @@ export function crudSuite(security = false) {
     for (const response of [await project.GET(request(), params(fixture.projectB.id)), await project.PATCH(request("PATCH", { name: "Attack" }), params(fixture.projectB.id)), await project.DELETE(request("DELETE"), params(fixture.projectB.id)), await projectMembers.GET(request(), params(fixture.projectB.id)), await projects.POST(request("POST", { organizationId: fixture.organizationB.id, name: "Attack" }))]) expect(response.status).toBe(404);
   });
   it("TENANT-T03/04 一覧を所属で絞り込む", async () => {
-    expect((await (await orgs.GET()).json()).data.map((row: {id: string}) => row.id)).not.toContain(fixture.organizationB.id);
+    expect((await (await orgs.GET(new Request("http://localhost:3100/api/organizations"))).json()).data.map((row: {id: string}) => row.id)).not.toContain(fixture.organizationB.id);
     expect((await (await projects.GET(request())).json()).data.map((row: {id: string}) => row.id)).not.toContain(fixture.projectB.id);
     expect((await projects.GET(new Request(`http://localhost:3100/api/projects?organizationId=${fixture.organizationB.id}`))).status).toBe(404);
   });
@@ -67,7 +67,7 @@ export function crudSuite(security = false) {
     expect((await org.GET(request(), params(data.id))).status).toBe(404);
     expect((await orgMembers.GET(request(), params(data.id))).status).toBe(404);
     expect((await projects.POST(request("POST", { organizationId: data.id, name: "Deleted org" }))).status).toBe(404);
-    expect((await (await orgs.GET()).json()).data.map((row: {id: string}) => row.id)).not.toContain(data.id);
+    expect((await (await orgs.GET(new Request("http://localhost:3100/api/organizations"))).json()).data.map((row: {id: string}) => row.id)).not.toContain(data.id);
     const audit = await context.db.select().from(s.auditLogs).where(eq(s.auditLogs.organizationId, data.id)).orderBy(s.auditLogs.createdAt); expect(audit.map((row) => row.action)).toEqual(["organization.create", "organization.update", "organization.delete"]); expect(audit.every((row) => !JSON.stringify(row.metadata).includes("Updated"))).toBe(true);
   });
   it("ORG-T06 Projectがある組織の削除409", async () => { const response = await org.DELETE(request("DELETE"), params(fixture.organizationA.id)); expect(response.status).toBe(409); expect((await response.json()).error.code).toBe("ORGANIZATION_NOT_EMPTY"); });

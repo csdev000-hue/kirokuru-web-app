@@ -1,9 +1,10 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 export async function liveApi(id: string, action: string, body: object = {}) {
  const response = await fetch(`/api/meetings/${id}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
- const data = await response.json(); if (!response.ok) throw new Error(data.error?.message ?? "会議操作に失敗しました。"); return data.data;
+ const data = await response.json(); if (!response.ok) throw new Error(apiErrorMessage(response, data, data.error?.message ?? "会議操作に失敗しました。")); return data.data;
 }
 export function LiveStart({ id, started, ending = false }: { id: string; started: boolean; ending?: boolean }) {
  const router = useRouter(); const [busy, setBusy] = useState(false); const [error, setError] = useState("");

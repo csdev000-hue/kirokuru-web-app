@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -20,7 +21,7 @@ export async function addParticipant(userId: string, meetingId: string, input: u
   const members = await contextMembers(access.projectId, access.organizationId, tx); const member = members.find((m) => m.userId === data.userId);
   if (data.userId && !member) throw new BusinessError("INVALID_PARTICIPANT", 422, "参加者はこのプロジェクトのメンバーから選択してください。");
   const [row] = await tx.insert(meetingParticipants).values({ meetingId, userId: data.userId ?? null, displayName: data.displayName ?? member!.name, role: data.role }).returning();
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.participant.add", resourceType: "participant", resourceId: row.id, metadata: { projectId: access.projectId, meetingId } }, tx); return row;
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_PARTICIPANT_ADD, resourceType: "participant", resourceId: row.id, metadata: { projectId: access.projectId, meetingId } }, tx); return row;
  }).catch(rethrowMeetingConstraint);
 }
 async function protectHost(meetingId: string, role: string, db: MeetingReadDb) {
@@ -36,7 +37,7 @@ export async function updateParticipant(userId: string, meetingId: string, parti
   const [current] = await tx.select().from(meetingParticipants).where(where); if (!current) throw new AccessError("RESOURCE_NOT_FOUND");
   if (data.role === "participant") await protectHost(meetingId, current.role, tx);
   const [row] = await tx.update(meetingParticipants).set(data).where(where).returning();
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.participant.update", resourceType: "participant", resourceId: row.id, metadata: { projectId: access.projectId, meetingId, changedFields: (["displayName", "role"] as const).filter((key) => data[key] !== undefined) } }, tx); return row;
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_PARTICIPANT_UPDATE, resourceType: "participant", resourceId: row.id, metadata: { projectId: access.projectId, meetingId, changedFields: (["displayName", "role"] as const).filter((key) => data[key] !== undefined) } }, tx); return row;
  });
 }
 export async function removeParticipant(userId: string, meetingId: string, participantId: string, db = getDb()) {
@@ -47,7 +48,7 @@ export async function removeParticipant(userId: string, meetingId: string, parti
   const [current] = await tx.select().from(meetingParticipants).where(where); if (!current) throw new AccessError("RESOURCE_NOT_FOUND");
   await protectHost(meetingId, current.role, tx);
   await tx.delete(meetingParticipants).where(where);
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.participant.remove", resourceType: "participant", resourceId: participantId, metadata: { projectId: access.projectId, meetingId } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_PARTICIPANT_REMOVE, resourceType: "participant", resourceId: participantId, metadata: { projectId: access.projectId, meetingId } }, tx);
  });
 }
 export async function recordMyAttendance(userId: string, meetingId: string, action: "join" | "leave", db = getDb()) {
@@ -57,6 +58,6 @@ export async function recordMyAttendance(userId: string, meetingId: string, acti
   const [current] = await tx.select().from(meetingParticipants).where(where); if (!current) throw new AccessError("RESOURCE_NOT_FOUND");
   if (action === "leave" && !current.joinedAt) throw new BusinessError("INVALID_TRANSITION", 409, "参加を記録してから退出してください。");
   const [row] = await tx.update(meetingParticipants).set(action === "join" ? { joinedAt: new Date(), leftAt: null } : { leftAt: new Date() }).where(where).returning();
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.participant.update", resourceType: "participant", resourceId: current.id, metadata: { projectId: access.projectId, meetingId, changedFields: action === "join" ? ["joinedAt", "leftAt"] : ["leftAt"] } }, tx); return row;
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_PARTICIPANT_UPDATE, resourceType: "participant", resourceId: current.id, metadata: { projectId: access.projectId, meetingId, changedFields: action === "join" ? ["joinedAt", "leftAt"] : ["leftAt"] } }, tx); return row;
  });
 }

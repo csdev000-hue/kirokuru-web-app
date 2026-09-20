@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { and, asc, count, max, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -42,7 +43,7 @@ export async function createMeeting(userId: string, projectId: string, input: un
   const [user] = await tx.select({ name: users.name }).from(users).where(eq(users.id, userId)); if (!user) throw new AccessError("UNAUTHENTICATED");
   const [row] = await tx.insert(meetings).values({ title: data.title, meetingDate: new Date(data.meetingDate), projectId, createdBy: userId, status: "scheduled" }).returning({ id: meetings.id });
   await tx.insert(meetingParticipants).values({ meetingId: row.id, userId, displayName: user.name, role: "host" });
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.create", resourceType: "meeting", resourceId: row.id, metadata: { projectId, meetingId: row.id } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_CREATE, resourceType: "meeting", resourceId: row.id, metadata: { projectId, meetingId: row.id } }, tx);
   return getMeeting(userId, row.id, tx);
  });
 }
@@ -58,8 +59,8 @@ export async function updateMeeting(userId: string, meetingId: string, input: un
   if (data.status) validateMeetingTransition(meeting.status, data.status);
   await tx.update(meetings).set({ ...(data.title !== undefined ? { title: data.title } : {}), ...(data.meetingDate ? { meetingDate: new Date(data.meetingDate) } : {}), ...(data.status ? { status: data.status } : {}) }).where(eq(meetings.id, meetingId));
   const base = { organizationId: access.organizationId, userId, resourceType: "meeting" as const, resourceId: meetingId };
-  if (data.title !== undefined || data.meetingDate !== undefined) await writeAuditLog({ ...base, action: "meeting.update", metadata: { projectId: access.projectId, meetingId, changedFields: (["title", "meetingDate"] as const).filter((key) => data[key] !== undefined) } }, tx);
-  if (data.status && data.status !== meeting.status) await writeAuditLog({ ...base, action: "meeting.status.change", metadata: { projectId: access.projectId, meetingId, from: meeting.status, to: data.status } }, tx);
+  if (data.title !== undefined || data.meetingDate !== undefined) await writeAuditLog({ ...base, action: AUDIT_ACTIONS.MEETING_UPDATE, metadata: { projectId: access.projectId, meetingId, changedFields: (["title", "meetingDate"] as const).filter((key) => data[key] !== undefined) } }, tx);
+  if (data.status && data.status !== meeting.status) await writeAuditLog({ ...base, action: AUDIT_ACTIONS.MEETING_STATUS_CHANGE, metadata: { projectId: access.projectId, meetingId, from: meeting.status, to: data.status } }, tx);
   return getMeeting(userId, meetingId, tx);
  });
 }
@@ -71,7 +72,7 @@ export async function deleteMeeting(userId: string, meetingId: string, db = getD
   // Related data never cascades. A deleted Ticket still retains its source reference.
   const related = await tx.select({ value: sql<boolean>`exists(select 1 from ${meetingTranscripts} where ${meetingTranscripts.meetingId} = ${meetingId}) or exists(select 1 from ${meetingRecordings} where ${meetingRecordings.meetingId} = ${meetingId}) or exists(select 1 from ${meetingMinutes} where ${meetingMinutes.meetingId} = ${meetingId}) or exists(select 1 from ${ticketCandidates} where ${ticketCandidates.meetingId} = ${meetingId}) or exists(select 1 from ${tickets} where ${tickets.sourceMeetingId} = ${meetingId})` }).from(meetings).where(eq(meetings.id, meetingId));
   if (related[0].value) throw new BusinessError("MEETING_NOT_EMPTY", 409, "関連データが存在する会議は削除できません。");
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.delete", resourceType: "meeting", resourceId: meetingId, metadata: { projectId: access.projectId, meetingId } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_DELETE, resourceType: "meeting", resourceId: meetingId, metadata: { projectId: access.projectId, meetingId } }, tx);
   await tx.delete(meetingParticipants).where(eq(meetingParticipants.meetingId, meetingId));
   await tx.delete(meetings).where(eq(meetings.id, meetingId));
  });

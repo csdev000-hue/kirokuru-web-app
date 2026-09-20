@@ -25,7 +25,10 @@
     "db:migrate": "drizzle-kit migrate",
     "test:security": "vitest run tests/security",
     "test:s3": "vitest run tests/integration/s3.test.ts",
-    "test:livekit": "vitest run tests/integration/livekit-provider.test.ts"
+    "test:livekit": "vitest run tests/integration/livekit-provider.test.ts",
+    "security:secrets": "tsx scripts/security-check.ts",
+    "security:client": "tsx scripts/verify-client-secrets.ts",
+    "security:readiness": "tsx scripts/production-readiness.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1131.0",

@@ -1,3 +1,4 @@
+import { logEvent } from "@/lib/logging/logger";
 import "server-only";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
@@ -15,7 +16,7 @@ export function createAuthConfig(): NextAuthConfig {
     session: { strategy: "jwt", maxAge: 60 * 60 },
     pages: { signIn: "/login", error: "/login" },
     // Auth.js may pass provider responses/tokens in error causes; never log them.
-    logger: { error() { console.warn({ event: "authentication_failed" }); }, warn() {}, debug() {} },
+    logger: { error() { logEvent({ event: "authentication_failed" }, "warn"); }, warn() {}, debug() {} },
     callbacks: {
       async signIn({ account, profile }) {
         return account?.provider === "google" && profile?.email_verified === true && typeof profile.email === "string";

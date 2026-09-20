@@ -5,4 +5,4 @@ import { joinLiveMeeting } from "@/lib/services/live-meeting-service";
 export function POST(request: Request, context: RouteContext) { return withCurrentUser(async (user, requestId) => {
  await readBody(request, liveMeetingActionSchema);
  return Response.json({ data: await joinLiveMeeting({ userId: user.id, meetingId: resourceId((await context.params).id), requestId }), requestId });
-})(); }
+})(request); }

@@ -1,3 +1,4 @@
+import { logEvent } from "@/lib/logging/logger";
 import "server-only";
 import { z } from "zod";
 const eventSchema = z.object({
@@ -10,5 +11,5 @@ const eventSchema = z.object({
 export function logSecurityEvent(event: z.input<typeof eventSchema>) {
   const parsed = eventSchema.safeParse(event);
   if (!parsed.success) throw new Error("Invalid security event");
-  console.warn({ event: "security", ...parsed.data });
+  logEvent({ event: "security", ...parsed.data }, "warn");
 }

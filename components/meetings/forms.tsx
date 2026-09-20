@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { transitions, type MeetingStatus } from "@/lib/validators/meeting";
@@ -15,7 +16,7 @@ function Mutation({ url, method, label, children, payload, kind, redirect, confi
   busy.current = true; setPending(true); setError("");
   try {
    const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: data ? JSON.stringify(data) : undefined });
-   if (!response.ok) { const result = await response.json(); setError(messages[result.error?.code] ?? "処理に失敗しました。再試行してください。"); return; }
+   if (!response.ok) { const result = await response.json(); setError(apiErrorMessage(response, result, messages[result.error?.code] ?? "処理に失敗しました。再試行してください。")); return; }
    if (redirect) router.push(redirect);
    else if (kind === "meeting" && method === "POST") router.push(`/meetings/${(await response.json()).data.id}`);
    else if (method === "POST") form.reset();

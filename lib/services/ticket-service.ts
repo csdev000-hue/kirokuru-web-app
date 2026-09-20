@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { getTicketSource } from "./ticket-source-service";
 import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
@@ -40,7 +41,7 @@ export async function createTicket(userId: string, projectId: string, input: unk
  return db.transaction(async (tx) => {
   const access = await requireProjectMember({ userId, projectId }, tx); await lockActiveProject(projectId, tx); await checkAssignee(parsed.data.assigneeId, projectId, tx);
   const [row] = await tx.insert(tickets).values({ ...parsed.data, projectId, createdBy: userId, status: "todo", sourceMeetingId: null, sourceCandidateId: null }).returning({ id: tickets.id });
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "ticket.create", resourceType: "ticket", resourceId: row.id, metadata: { projectId } }, tx); return getTicket(userId, row.id, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.TICKET_CREATE, resourceType: "ticket", resourceId: row.id, metadata: { projectId } }, tx); return getTicket(userId, row.id, tx);
  });
 }
 export async function updateTicket(userId: string, ticketId: string, input: unknown, db = getDb()) {
@@ -49,13 +50,13 @@ export async function updateTicket(userId: string, ticketId: string, input: unkn
   const access = await requireTicketAccess({ userId, ticketId, minimumRole: "member" }, tx); await lockActiveProject(access.projectId, tx); await checkAssignee(parsed.data.assigneeId, access.projectId, tx);
   const [row] = await tx.update(tickets).set(parsed.data).where(and(eq(tickets.id, ticketId), isNull(tickets.deletedAt))).returning({ id: tickets.id }); if (!row) throw new AccessError("RESOURCE_NOT_FOUND");
   const changedFields = (["title", "description", "type", "status", "priority", "assigneeId", "dueDate"] as const).filter((key) => parsed.data[key] !== undefined);
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "ticket.update", resourceType: "ticket", resourceId: ticketId, metadata: { projectId: access.projectId, changedFields } }, tx); return getTicket(userId, ticketId, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.TICKET_UPDATE, resourceType: "ticket", resourceId: ticketId, metadata: { projectId: access.projectId, changedFields } }, tx); return getTicket(userId, ticketId, tx);
  });
 }
 export async function deleteTicket(userId: string, ticketId: string, db = getDb()) {
  return db.transaction(async (tx) => {
   const access = await requireTicketAccess({ userId, ticketId, minimumRole: "member" }, tx); await lockActiveProject(access.projectId, tx);
   const [row] = await tx.update(tickets).set({ deletedAt: new Date() }).where(and(eq(tickets.id, ticketId), isNull(tickets.deletedAt))).returning({ id: tickets.id }); if (!row) throw new AccessError("RESOURCE_NOT_FOUND");
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "ticket.delete", resourceType: "ticket", resourceId: ticketId, metadata: { projectId: access.projectId } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.TICKET_DELETE, resourceType: "ticket", resourceId: ticketId, metadata: { projectId: access.projectId } }, tx);
  });
 }

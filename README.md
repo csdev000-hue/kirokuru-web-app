@@ -200,3 +200,15 @@ S3の設定例は `infra/aws/` にあり、自動適用は行いません。
 
 LiveKitの環境別設定と `LIVE_MEETING_ENABLED=true` により、会議詳細からオンライン会議を開始・参加・終了できます。viewerは視聴専用です。
 API・Migration・障害時の再試行・検証範囲は [オンライン会議実装設計](docs/design/live-meeting-implementation.md) を参照してください。
+
+### Phase 11: Security Hardening
+
+共通requestId・安全なレスポンス/エラー、構造化ログ/監査、DB共有Rate Limit、nonce CSP、Secret検査、Security CIを追加しました。
+開発用DBには `0007_dry_kinsey_walden.sql` が必要です。Production Migrationは実行していません。
+
+- `npm run security:secrets`: 作業ツリーと禁止公開envの検査。
+- `npm run security:client`: build後のClient bundle検査。
+- `npm run security:readiness`: 接続を伴わない設定検査（未設定項目があれば失敗）。
+- `npm audit`: 依存脆弱性の確認。CIはHigh/Criticalで失敗します。
+
+Rate設定、Auth.js/204のレスポンス例外、機能別レビュー、運用上の制約は[Phase 11実装補足](docs/security/phase-11-hardening.md)を参照してください。

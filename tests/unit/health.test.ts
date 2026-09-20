@@ -9,5 +9,5 @@ it("外部サービス設定が空でもHealth Checkが正常応答する", asyn
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toContain("application/json");
   expect(response.headers.get("cache-control")).toBe("no-store");
-  expect(await response.json()).toEqual({ status: "ok" });
+  expect(await response.json()).toEqual({ data: { status: "ok" }, requestId: response.headers.get("x-request-id") });
 });

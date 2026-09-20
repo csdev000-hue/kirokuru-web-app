@@ -1,10 +1,11 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 const errors: Record<string, string> = { TICKET_PRIORITY_REQUIRED: "優先度が未設定です。優先度を設定して承認した候補を登録してください。", INVALID_ASSIGNEE: "担当者のProject所属を確認してください。", TICKET_CANDIDATE_ALREADY_REGISTERED: "登録済み候補が含まれています。再読み込みしてください。", TICKET_CANDIDATE_NOT_APPROVED: "承認済み候補のみ登録できます。", FORBIDDEN: "登録する権限がありません。", PROJECT_ARCHIVED: "アーカイブ済みProjectには登録できません。" };
 async function requestRegistration(url: string, body: object) {
  const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const json = await response.json();
- if (!response.ok) throw new Error(errors[json.error?.code] ?? "チケット登録に失敗しました。再試行してください。"); return json.data;
+ if (!response.ok) throw new Error(apiErrorMessage(response, json, errors[json.error?.code] ?? "チケット登録に失敗しました。再試行してください。")); return json.data;
 }
 export function RegisterCandidate({ id }: { id: string }) {
  const router = useRouter(); const busy = useRef(false); const [pending, setPending] = useState(false); const [error, setError] = useState(""); const [ticket, setTicket] = useState<{ ticketId: string; deleted: boolean } | null>(null);

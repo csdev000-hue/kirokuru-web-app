@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MinutesItem, ActionItem } from "@/lib/ai/schemas/minutes";
@@ -9,7 +10,7 @@ const messages: Record<string, string> = { MINUTES_GENERATION_CONFLICT: "議事�
 async function mutate(url: string, method: string, body: object, key?: string) {
  const response = await fetch(url, { method, headers: { "Content-Type": "application/json", ...(key ? { "Idempotency-Key": key } : {}) }, body: JSON.stringify(body) });
  const result = await response.json();
- if (!response.ok) throw new Error(messages[result.error?.code] ?? "処理に失敗しました。再試行してください。");
+ if (!response.ok) throw new Error(apiErrorMessage(response, result, messages[result.error?.code] ?? "処理に失敗しました。再試行してください。"));
  return result.data;
 }
 export function GenerateMinutes({ meetingId, regenerate }: { meetingId: string; regenerate: boolean }) {

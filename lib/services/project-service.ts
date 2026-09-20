@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -40,7 +41,7 @@ export async function createProject(userId: string, input: unknown, db = getDb()
     if (!organization) throw new AccessError("RESOURCE_NOT_FOUND");
     const [row] = await tx.insert(projects).values({ name, description, organizationId, createdBy: userId, status: "active" }).returning({ id: projects.id });
     await tx.insert(projectMembers).values({ projectId: row.id, userId, role: "owner" });
-    await writeAuditLog({ organizationId, userId, action: "project.create", resourceType: "project", resourceId: row.id }, tx);
+    await writeAuditLog({ organizationId, userId, action: AUDIT_ACTIONS.PROJECT_CREATE, resourceType: "project", resourceId: row.id }, tx);
     return getProject(userId, row.id, tx);
   });
 }
@@ -52,7 +53,7 @@ export async function updateProject(userId: string, projectId: string, input: un
     const membership = await requireProjectOwner({ userId, projectId }, tx);
     await tx.update(projects).set({ ...(data.name !== undefined ? { name: data.name } : {}), ...(data.description !== undefined ? { description: data.description } : {}), ...(data.status !== undefined ? { status: data.status } : {}) }).where(eq(projects.id, projectId));
     const changedFields = (["name", "description", "status"] as const).filter((key) => data[key] !== undefined);
-    await writeAuditLog({ organizationId: membership.organizationId, userId, action: data.status === "archived" ? "project.archive" : "project.update", resourceType: "project", resourceId: projectId, metadata: { changedFields } }, tx);
+    await writeAuditLog({ organizationId: membership.organizationId, userId, action: data.status === "archived" ? AUDIT_ACTIONS.PROJECT_ARCHIVE : AUDIT_ACTIONS.PROJECT_UPDATE, resourceType: "project", resourceId: projectId, metadata: { changedFields } }, tx);
     return getProject(userId, projectId, tx);
   });
 }

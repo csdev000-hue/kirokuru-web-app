@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { and, eq, max, desc } from "drizzle-orm";
 import { z } from "zod";
@@ -57,8 +58,8 @@ export async function generateMeetingMinutes(input: { userId: string; meetingId:
    const version = (highest.version ?? 0) + 1;
    const [row] = await tx.insert(meetingMinutes).values({ meetingId: meeting.id, generationKey: key, version, status: "review", ...contentColumns(content), aiModel: modelId, promptVersion: MINUTES_PROMPT_VERSION, schemaVersion: MINUTES_SCHEMA_VERSION, aiRawOutput: null, createdBy: input.userId }).returning({ id: meetingMinutes.id });
    const metadata = { meetingId: meeting.id, minutesId: row.id, version, modelId, promptVersion: MINUTES_PROMPT_VERSION, schemaVersion: MINUTES_SCHEMA_VERSION };
-   await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: "ai.minutes.generate", resourceType: "minutes", resourceId: row.id, metadata }, tx);
-   if (version > 1) await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: "minutes.regenerate", resourceType: "minutes", resourceId: row.id, metadata }, tx);
+   await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: AUDIT_ACTIONS.AI_MINUTES_GENERATE, resourceType: "minutes", resourceId: row.id, metadata }, tx);
+   if (version > 1) await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: AUDIT_ACTIONS.MINUTES_REGENERATE, resourceType: "minutes", resourceId: row.id, metadata }, tx);
    await tx.update(meetings).set({ status: "completed", minutesGenerationId: null, minutesGenerationExpiresAt: null }).where(eq(meetings.id, meeting.id));
    return getMinutes(input.userId, row.id, tx);
   });
@@ -67,7 +68,7 @@ export async function generateMeetingMinutes(input: { userId: string; meetingId:
   // Token comparison prevents an expired worker from changing a newer generation.
   await db.transaction(async (tx) => {
    const [row] = await tx.update(meetings).set({ status: "failed", minutesGenerationId: null, minutesGenerationExpiresAt: null }).where(and(eq(meetings.id, input.meetingId), eq(meetings.minutesGenerationId, token))).returning({ id: meetings.id });
-   if (row) await writeAuditLog({ organizationId: start.access!.organizationId, userId: input.userId, action: "ai.minutes.generate.failed", resourceType: "meeting", resourceId: row.id, metadata: { meetingId: row.id, errorCode: resultCode } }, tx);
+   if (row) await writeAuditLog({ organizationId: start.access!.organizationId, userId: input.userId, action: AUDIT_ACTIONS.AI_MINUTES_GENERATE_FAILED, resourceType: "meeting", resourceId: row.id, metadata: { meetingId: row.id, errorCode: resultCode } }, tx);
   });
   throw error instanceof BusinessError ? error : aiError("AI_PROVIDER_ERROR");
  } finally { logAIMetric({ requestId, meetingId: input.meetingId, modelId, promptVersion: MINUTES_PROMPT_VERSION, schemaVersion: MINUTES_SCHEMA_VERSION, durationMs: Date.now() - startedAt, inputBytes, ...metrics, result: resultCode }); }

@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 type Props = { kind: "organizations" | "projects"; existing?: { id: string; name: string; description?: string | null; status?: string }; organizations?: { id: string; name: string }[]; organizationId?: string };
@@ -11,7 +12,7 @@ export function Editor({ kind, existing, organizations = [], organizationId }: P
     busy.current = true; setPending(true); setMessage("");
     try {
       const response = await fetch(`/api/${kind}${existing ? `/${existing.id}` : ""}`, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
-      if (!response.ok) { const result = await response.json(); setMessage(messages[result.error?.code] ?? "処理に失敗しました。時間をおいて再試行してください。"); return; }
+      if (!response.ok) { const result = await response.json(); setMessage(apiErrorMessage(response, result, messages[result.error?.code] ?? "処理に失敗しました。時間をおいて再試行してください。")); return; }
       if (method === "DELETE") { router.push(`/${kind}`); router.refresh(); }
       else { const result = await response.json(); router.push(`/${kind}/${result.data.id}`); router.refresh(); setMessage("保存しました。"); }
     } catch { setMessage("通信に失敗しました。再試行してください。"); }

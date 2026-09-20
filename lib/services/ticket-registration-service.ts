@@ -1,3 +1,5 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
+import { logEvent } from "@/lib/logging/logger";
 import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -58,7 +60,7 @@ async function register(userId: string, candidateIds: string[], bulk: boolean, r
     const [ticket] = await tx.insert(tickets).values({ ...fields, priority: c.priority!, projectId: c.projectId, createdBy: userId, status: "todo", sourceCandidateId: c.id, sourceMeetingId: c.meetingId }).returning({ id: tickets.id });
     const updated = await tx.update(ticketCandidates).set({ status: "registered", registeredTicketId: ticket.id }).where(and(eq(ticketCandidates.id, c.id), eq(ticketCandidates.status, "approved"))).returning({ id: ticketCandidates.id });
     if (updated.length !== 1) throw conflict();
-    await writeAuditLog({ organizationId: access[0].organizationId, userId, action: "ticket_candidate.register", resourceType: "candidate", resourceId: c.id, metadata: { candidateId: c.id, ticketId: ticket.id, meetingId: c.meetingId, minutesId, requestId } }, tx);
+    await writeAuditLog({ organizationId: access[0].organizationId, userId, action: AUDIT_ACTIONS.TICKET_CANDIDATE_REGISTER, resourceType: "candidate", resourceId: c.id, metadata: { candidateId: c.id, ticketId: ticket.id, meetingId: c.meetingId, minutesId, requestId } }, tx);
     registered.push({ candidateId: c.id, ticketId: ticket.id, status: "registered" as const, existing: false, deleted: false });
    }
    return registered;
@@ -72,7 +74,7 @@ async function register(userId: string, candidateIds: string[], bulk: boolean, r
  } finally {
   for (const candidateId of candidateIds) {
    const row = result.find((r) => r.candidateId === candidateId);
-   console.info({ event: "ticket_registration", ...metricSchema.parse({ requestId, candidateId, ticketId: row?.ticketId, projectId, result: resultCode, durationMs: Date.now() - started, idempotentHit: row?.existing ?? false, conflict: ["TICKET_REGISTRATION_CONFLICT", "TICKET_CANDIDATE_ALREADY_REGISTERED", "TICKET_CANDIDATE_NOT_APPROVED"].includes(resultCode) }) });
+   logEvent({ event: "ticket_registration", ...metricSchema.parse({ requestId, candidateId, ticketId: row?.ticketId, projectId, result: resultCode, durationMs: Date.now() - started, idempotentHit: row?.existing ?? false, conflict: ["TICKET_REGISTRATION_CONFLICT", "TICKET_CANDIDATE_ALREADY_REGISTERED", "TICKET_CANDIDATE_NOT_APPROVED"].includes(resultCode) }) });
   }
  }
 }

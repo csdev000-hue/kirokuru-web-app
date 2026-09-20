@@ -5,3 +5,4 @@ export * from "./meetings";
 export * from "./tickets";
 export * from "./audit";
 export * from "./relations";
+export * from "./rate-limits";

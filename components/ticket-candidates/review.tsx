@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import { useRef, useState } from "react";
 import { RegisterCandidate } from "./registration";
 import { useRouter } from "next/navigation";
@@ -8,7 +9,7 @@ export type CandidateView = Omit<Awaited<ReturnType<typeof getTicketCandidate>>,
 const messages: Record<string, string> = { MINUTES_NOT_APPROVED: "承認済み議事録を選択してください。", AI_TICKET_GENERATION_CONFLICT: "候補を生成中です。しばらく待って再試行してください。", AI_CONTEXT_TOO_LARGE: "入力が生成可能な上限を超えています。", INVALID_ASSIGNEE: "担当者はProject Memberから選択してください。", FORBIDDEN: "この操作は許可されていません。", VALIDATION_ERROR: "入力内容を確認してください。", TICKET_CANDIDATE_ALREADY_APPROVED: "すでに承認済みです。画面を再読み込みしてください。", TICKET_CANDIDATE_ALREADY_REJECTED: "すでに却下済みです。画面を再読み込みしてください。" };
 async function mutate(url: string, method: string, body: object, key?: string) {
  const response = await fetch(url, { method, headers: { "Content-Type": "application/json", ...(key ? { "Idempotency-Key": key } : {}) }, body: JSON.stringify(body) });
- const json = await response.json(); if (!response.ok) throw new Error(messages[json.error?.code] ?? "処理に失敗しました。再試行してください。"); return json.data;
+ const json = await response.json(); if (!response.ok) throw new Error(apiErrorMessage(response, json, messages[json.error?.code] ?? "処理に失敗しました。再試行してください。")); return json.data;
 }
 export function GenerateCandidates({ meetingId, minutesId, regenerate }: { meetingId: string; minutesId: string; regenerate: boolean }) {
  const router = useRouter(); const busy = useRef(false); const key = useRef<string | null>(null); const [pending, setPending] = useState(false); const [message, setMessage] = useState("");

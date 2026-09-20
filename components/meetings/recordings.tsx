@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { recordingContentTypeSchema } from "@/lib/validators/recording";
@@ -7,7 +8,7 @@ const subscribe = () => () => {};
 const size = (bytes: number | null) => bytes === null ? "未確認" : `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 async function api(path: string, body = {}, method = "POST") {
  const response = await fetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
- const result = await response.json(); if (!response.ok) throw new Error(result.error?.message ?? "録音操作に失敗しました。"); return result.data;
+ const result = await response.json(); if (!response.ok) throw new Error(apiErrorMessage(response, result, result.error?.message ?? "録音操作に失敗しました。")); return result.data;
 }
 function put(url: string, headers: Record<string, string>, file: File, progress: (percent: number) => void) {
  return new Promise<void>((resolve, reject) => {

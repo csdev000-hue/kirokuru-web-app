@@ -24,6 +24,6 @@ it("認証済みUserをhandlerに渡す", async () => {
   const user = { id: crypto.randomUUID(), email: "test@example.invalid", name: "Test" };
   currentUser.mockResolvedValue(user);
   const response = await withCurrentUser((value) => Response.json({ data: value }))();
-  expect(await response.json()).toEqual({ data: user });
+  expect(await response.json()).toEqual({ data: user, requestId: response.headers.get("x-request-id") });
   expect(response.headers.get("x-request-id")).toBeTruthy();
 });

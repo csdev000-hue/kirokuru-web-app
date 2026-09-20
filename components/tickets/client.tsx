@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/lib/api/client-error";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,7 +11,8 @@ async function write(url: string, method: string, body?: object) {
  const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
  if (!response.ok) {
   const messages: Record<number, string> = { 400: "入力内容を確認してください。", 401: "再度ログインしてください。", 403: "この操作は許可されていません。", 404: "対象が見つかりません。", 409: "アーカイブ済みプロジェクトは変更できません。", 422: "担当者または入力内容を確認してください。" };
-  throw new Error(messages[response.status] ?? "処理に失敗しました。再試行してください。");
+  const body = await response.json().catch(() => ({}));
+  throw new Error(apiErrorMessage(response, body, messages[response.status] ?? "処理に失敗しました。再試行してください。"));
  }
  return response.status === 204 ? null : response.json();
 }

@@ -1,8 +1,11 @@
+import { limitAuditedOperations } from "@/lib/security/audit-rate-limit";
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
+import { logEvent } from "@/lib/logging/logger";
 import "server-only";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { and, asc, count, eq, gte, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { auditLogs, meetingRecordings, meetingMinutes, meetingTranscripts, ticketCandidates, users, type MeetingRecording } from "@/lib/db/schema";
+import { meetingRecordings, meetingMinutes, meetingTranscripts, ticketCandidates, type MeetingRecording } from "@/lib/db/schema";
 import { BusinessError } from "@/lib/api/errors";
 import { requireMeetingAccess } from "@/lib/permissions/resource";
 import { writeAuditLog, type AuditInput } from "@/lib/security/audit";
@@ -34,15 +37,13 @@ async function audit(ctx: Context, row: MeetingRecording, organizationId: string
 }
 // DB-backed limit shared by all application instances; serialized per authenticated user.
 async function limit(ctx: Context, tx: Tx) {
- await tx.select({ id: users.id }).from(users).where(eq(users.id, ctx.userId)).for("update");
- const [n] = await tx.select({ value: count() }).from(auditLogs).where(and(eq(auditLogs.userId, ctx.userId), eq(auditLogs.resourceType, "recording"), gte(auditLogs.createdAt, new Date(Date.now() - 60000))));
- if (n.value >= 30) throw new BusinessError("RECORDING_RATE_LIMITED", 429, "録音操作が集中しています。1分後に再試行してください。");
+ await limitAuditedOperations(tx, ctx.userId, "recording");
 }
 async function observed<T>(ctx: Context, operation: string, recordingId: string | undefined, meetingId: string | undefined, work: () => Promise<T>): Promise<T> {
  return operationScope.run({ meetingId }, async () => {
   const start = Date.now(); let result = "success";
   try { return await work(); } catch (e) { result = e instanceof BusinessError ? e.code : "failed"; throw e; }
-  finally { console.info(JSON.stringify({ event: "recording", requestId: ctx.requestId, recordingId, ...operationScope.getStore(), operation, result, durationMs: Date.now() - start })); }
+  finally { logEvent({ event: "recording", requestId: ctx.requestId, recordingId, ...operationScope.getStore(), operation, result, durationMs: Date.now() - start }); }
  });
 }
 export async function transitionRecordingStatus(row: MeetingRecording, next: RecordingStatus, tx: Tx) {
@@ -76,7 +77,7 @@ async function issueUpload(ctx: Context, id: string, db: Db) {
    const { row, access } = await locked(ctx, id, tx); await limit(ctx, tx);
    if (row.status !== "uploading") throw invalid();
    if (Date.now() - row.createdAt.getTime() > 86400000) {
-    await transitionRecordingStatus(row, "failed", tx); await audit(ctx, row, access.organizationId, access.projectId, "recording.upload.failed", tx, "RECORDING_UPLOAD_FAILED"); return { error: invalid() };
+    await transitionRecordingStatus(row, "failed", tx); await audit(ctx, row, access.organizationId, access.projectId, AUDIT_ACTIONS.RECORDING_UPLOAD_FAILED, tx, "RECORDING_UPLOAD_FAILED"); return { error: invalid() };
    }
    try {
     if (await recordingStorage.headObject(row.s3Key)) throw invalid();
@@ -84,12 +85,12 @@ async function issueUpload(ctx: Context, id: string, db: Db) {
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
     await tx.update(meetingRecordings).set({ uploadExpiresAt: expiresAt }).where(eq(meetingRecordings.id, id));
     const result = await recordingStorage.createUploadUrl(row.s3Key, row.contentType, Number(row.fileSize), expiresIn);
-    await audit(ctx, row, access.organizationId, access.projectId, "recording.upload_url.issue", tx);
+    await audit(ctx, row, access.organizationId, access.projectId, AUDIT_ACTIONS.RECORDING_UPLOAD_URL_ISSUE, tx);
     return { data: { recordingId: id, uploadUrl: result.url, headers: result.headers, expiresIn, expiresAt } };
    } catch (error) {
     if (error instanceof BusinessError && error.code === "RECORDING_INVALID_STATUS") throw error;
     await transitionRecordingStatus(row, "failed", tx);
-    await audit(ctx, row, access.organizationId, access.projectId, "recording.upload.failed", tx, "S3_PROVIDER_ERROR");
+    await audit(ctx, row, access.organizationId, access.projectId, AUDIT_ACTIONS.RECORDING_UPLOAD_FAILED, tx, "S3_PROVIDER_ERROR");
     return { error: error instanceof BusinessError ? error : s3Error(error) };
    }
   });
@@ -115,13 +116,13 @@ export async function completeRecordingUpload(ctx: Context, id: string, db = get
      await transitionRecordingStatus(row, "uploaded", tx);
      await tx.update(meetingRecordings).set({ ...verified, uploadedAt: new Date() }).where(eq(meetingRecordings.id, id));
     }
-    await audit(ctx, row, access.organizationId, access.projectId, "recording.upload.complete", tx);
+    await audit(ctx, row, access.organizationId, access.projectId, AUDIT_ACTIONS.RECORDING_UPLOAD_COMPLETE, tx);
     return { data: safe(await find(id, tx)) };
    } catch (error) {
     const mapped = error instanceof BusinessError ? error : s3Error(error);
     // Missing object and transient provider failures remain retryable. Invalid metadata is quarantined.
     if (["RECORDING_CONTENT_TYPE_MISMATCH", "RECORDING_FILE_TOO_LARGE", "RECORDING_SIZE_MISMATCH"].includes(mapped.code)) await transitionRecordingStatus(row, "failed", tx);
-    await audit(ctx, row, access.organizationId, access.projectId, "recording.upload.failed", tx, mapped.code);
+    await audit(ctx, row, access.organizationId, access.projectId, AUDIT_ACTIONS.RECORDING_UPLOAD_FAILED, tx, mapped.code);
     return { error: mapped };
    }
   });
@@ -135,7 +136,7 @@ export async function createRecordingDownloadUrl(ctx: Context, id: string, db = 
   validateObject(row, await recordingStorage.headObject(row.s3Key));
   const expiresIn = getRecordingSettings().RECORDING_DOWNLOAD_URL_TTL_SECONDS;
   const downloadUrl = await recordingStorage.createDownloadUrl(row.s3Key, expiresIn);
-  await audit(ctx, row, access.organizationId, access.projectId, "recording.download_url.issue", tx);
+  await audit(ctx, row, access.organizationId, access.projectId, AUDIT_ACTIONS.RECORDING_DOWNLOAD_URL_ISSUE, tx);
   return { downloadUrl, expiresIn };
  }));
 }
@@ -152,7 +153,7 @@ export async function deleteRecording(ctx: Context, id: string, db = getDb()) {
   try { await recordingStorage.deleteObject(row.s3Key); } catch { throw new BusinessError("RECORDING_DELETE_FAILED", 502, "録音を削除できませんでした。再試行してください。"); }
   // Keep a tombstone, including the last PUT expiry: late browser PUTs remain traceable.
   await tx.update(meetingRecordings).set({ deletedAt: new Date() }).where(eq(meetingRecordings.id, id));
-  await audit(ctx, row, access.organizationId, access.projectId, "recording.delete", tx);
+  await audit(ctx, row, access.organizationId, access.projectId, AUDIT_ACTIONS.RECORDING_DELETE, tx);
   return { id };
  }));
 }

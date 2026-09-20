@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { eq, and, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -42,7 +43,7 @@ async function mutateMinutes(userId: string, minutesId: string, input: unknown, 
   const context = await loadMeetingAIContext(userId, row.meetingId, tx);
   const validated = validateMinutes(minutesDocument({ ...row, ...data }), context, true);
   await tx.update(meetingMinutes).set({ ...contentColumns(validated), status: approve ? "approved" : "review" }).where(eq(meetingMinutes.id, minutesId));
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: approve ? "minutes.approve" : "minutes.update", resourceType: "minutes", resourceId: minutesId, metadata: { meetingId: row.meetingId, version: row.version, changedFields: approve ? ["status"] : (["summary", "decisions", "actionItems", "issues", "pendingItems"] as const).filter((key) => key in data) } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: approve ? AUDIT_ACTIONS.MINUTES_APPROVE : AUDIT_ACTIONS.MINUTES_UPDATE, resourceType: "minutes", resourceId: minutesId, metadata: { meetingId: row.meetingId, version: row.version, changedFields: approve ? ["status"] : (["summary", "decisions", "actionItems", "issues", "pendingItems"] as const).filter((key) => key in data) } }, tx);
   return getMinutes(userId, minutesId, tx);
  });
 }

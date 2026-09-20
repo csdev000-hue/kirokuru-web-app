@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { and, eq, gte } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -28,7 +29,7 @@ export async function bulkCreateTranscripts(userId: string, meetingId: string, i
   const members = new Set((await contextMembers(access.projectId, access.organizationId, tx)).map((m) => m.userId));
   for (const row of transcripts) if (row.speakerUserId && !members.has(row.speakerUserId)) throw new BusinessError("INVALID_SPEAKER", 422, "話者はこのプロジェクトのメンバーから選択してください。");
   const rows = await tx.insert(meetingTranscripts).values(transcripts.map((row) => ({ ...row, meetingId, speakerUserId: row.speakerUserId ?? null, startedAt: row.startedAt.toFixed(3), endedAt: row.endedAt == null ? null : row.endedAt.toFixed(3) }))).returning();
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: single ? "meeting.transcript.create" : "meeting.transcript.bulk_create", resourceType: single ? "transcript" : "meeting", resourceId: single ? rows[0].id : meetingId, metadata: { projectId: access.projectId, meetingId, count: rows.length } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: single ? AUDIT_ACTIONS.MEETING_TRANSCRIPT_CREATE : AUDIT_ACTIONS.MEETING_TRANSCRIPT_BULK_CREATE, resourceType: single ? "transcript" : "meeting", resourceId: single ? rows[0].id : meetingId, metadata: { projectId: access.projectId, meetingId, count: rows.length } }, tx);
   return rows.sort((a, b) => a.sequenceNo - b.sequenceNo).map(transcriptOutput);
  }).catch(rethrowMeetingConstraint);
 }
@@ -44,7 +45,7 @@ export async function updateTranscript(userId: string, meetingId: string, transc
   const data = meetingValidation(createTranscriptSchema, { speakerUserId: current.speakerUserId, speakerName: current.speakerName, startedAt: Number(current.startedAt), endedAt: current.endedAt === null ? null : Number(current.endedAt), text: current.text, sequenceNo: current.sequenceNo, ...patch });
   if (data.speakerUserId && !(await contextMembers(access.projectId, access.organizationId, tx)).some((m) => m.userId === data.speakerUserId)) throw new BusinessError("INVALID_SPEAKER", 422, "話者はこのプロジェクトのメンバーから選択してください。");
   const [row] = await tx.update(meetingTranscripts).set({ ...data, startedAt: data.startedAt.toFixed(3), endedAt: data.endedAt == null ? null : data.endedAt.toFixed(3) }).where(where).returning();
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.transcript.update", resourceType: "transcript", resourceId: transcriptId, metadata: { projectId: access.projectId, meetingId, changedFields: (["speakerUserId", "speakerName", "startedAt", "endedAt", "text", "sequenceNo"] as const).filter((key) => patch[key] !== undefined) } }, tx); return transcriptOutput(row);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_TRANSCRIPT_UPDATE, resourceType: "transcript", resourceId: transcriptId, metadata: { projectId: access.projectId, meetingId, changedFields: (["speakerUserId", "speakerName", "startedAt", "endedAt", "text", "sequenceNo"] as const).filter((key) => patch[key] !== undefined) } }, tx); return transcriptOutput(row);
  }).catch(rethrowMeetingConstraint);
 }
 export async function deleteTranscript(userId: string, meetingId: string, transcriptId: string, db = getDb()) {
@@ -52,6 +53,6 @@ export async function deleteTranscript(userId: string, meetingId: string, transc
  return db.transaction(async (tx) => {
   const { access } = await lockMeeting(userId, meetingId, tx); await assertNoEvidence(meetingId, tx);
   const [row] = await tx.delete(meetingTranscripts).where(and(eq(meetingTranscripts.meetingId, meetingId), eq(meetingTranscripts.id, transcriptId))).returning({ id: meetingTranscripts.id }); if (!row) throw new AccessError("RESOURCE_NOT_FOUND");
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "meeting.transcript.delete", resourceType: "transcript", resourceId: transcriptId, metadata: { projectId: access.projectId, meetingId } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.MEETING_TRANSCRIPT_DELETE, resourceType: "transcript", resourceId: transcriptId, metadata: { projectId: access.projectId, meetingId } }, tx);
  });
 }

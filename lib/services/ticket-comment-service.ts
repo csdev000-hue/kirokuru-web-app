@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -18,6 +19,6 @@ export async function createTicketComment(userId: string, ticketId: string, inpu
   const access = await requireTicketAccess({ userId, ticketId, minimumRole: "member" }, tx); await lockActiveProject(access.projectId, tx);
   const [ticket] = await tx.select({ id: tickets.id }).from(tickets).where(and(eq(tickets.id, ticketId), isNull(tickets.deletedAt))).for("share"); if (!ticket) throw new AccessError("RESOURCE_NOT_FOUND");
   const [row] = await tx.insert(ticketComments).values({ ticketId, userId, content: parsed.data.content }).returning({ id: ticketComments.id, content: ticketComments.content, createdAt: ticketComments.createdAt });
-  await writeAuditLog({ organizationId: access.organizationId, userId, action: "ticket.comment.create", resourceType: "ticket", resourceId: ticketId, metadata: { projectId: access.projectId } }, tx); return row;
+  await writeAuditLog({ organizationId: access.organizationId, userId, action: AUDIT_ACTIONS.TICKET_COMMENT_CREATE, resourceType: "ticket", resourceId: ticketId, metadata: { projectId: access.projectId } }, tx); return row;
  });
 }

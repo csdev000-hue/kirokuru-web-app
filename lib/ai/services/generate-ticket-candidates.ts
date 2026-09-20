@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -59,8 +60,8 @@ export async function generateTicketCandidates(input: { userId: string; meetingI
    if (candidates.length) await tx.insert(ticketCandidates).values(candidates.map((c) => ({ generationId: generation.id, projectId: access.projectId, meetingId: input.meetingId, minutesId: context.minutes.id, title: c.title, description: c.description, type: c.type, priority: c.priority, assigneeId: c.assignee?.user_id ?? null, dueDate: c.due_date, confidence: c.confidence.toFixed(4), sourceTranscriptIds: c.source_evidence.map((e) => e.transcript_id), sourceQuote: context.transcripts.find((t) => t.id === c.source_evidence[0].transcript_id)!.text.slice(0, 300), status: "pending" as const, registeredTicketId: null, aiModel: modelId, promptVersion: TICKET_CANDIDATE_PROMPT_VERSION, schemaVersion: TICKET_CANDIDATE_SCHEMA_VERSION })));
    await tx.update(candidateGenerations).set({ status: "completed" }).where(eq(candidateGenerations.id, generation.id));
    const metadata = { meetingId: input.meetingId, minutesId: context.minutes.id, generationId: generation.id, candidateCount, modelId, promptVersion: TICKET_CANDIDATE_PROMPT_VERSION, schemaVersion: TICKET_CANDIDATE_SCHEMA_VERSION };
-   await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: "ai.ticket_candidate.generate", resourceType: "minutes", resourceId: context.minutes.id, metadata }, tx);
-   if (start.regenerate) await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: "ticket_candidate.regenerate", resourceType: "minutes", resourceId: context.minutes.id, metadata }, tx);
+   await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: AUDIT_ACTIONS.AI_TICKET_CANDIDATE_GENERATE, resourceType: "minutes", resourceId: context.minutes.id, metadata }, tx);
+   if (start.regenerate) await writeAuditLog({ organizationId: access.organizationId, userId: input.userId, action: AUDIT_ACTIONS.TICKET_CANDIDATE_REGENERATE, resourceType: "minutes", resourceId: context.minutes.id, metadata }, tx);
    return readResult(tx);
   });
  } catch (error) {
@@ -68,7 +69,7 @@ export async function generateTicketCandidates(input: { userId: string; meetingI
   const safeError = code === "AI_INVALID_JSON" ? new BusinessError("AI_TICKET_INVALID_JSON", 502, "AI候補のJSON生成に失敗しました。") : code === "AI_SCHEMA_INVALID" ? new BusinessError("AI_TICKET_SCHEMA_INVALID", 502, "AI候補の構造が不正です。") : error instanceof BusinessError ? error : aiError("AI_PROVIDER_ERROR"); resultCode = safeError.code;
   await db.transaction(async (tx) => {
    const changed = await tx.update(candidateGenerations).set({ status: "failed" }).where(and(eq(candidateGenerations.id, start.generationId), eq(candidateGenerations.leaseToken, leaseToken), eq(candidateGenerations.status, "processing"))).returning({ id: candidateGenerations.id });
-   if (changed.length) await writeAuditLog({ organizationId: start.access.organizationId, userId: input.userId, action: "ai.ticket_candidate.generate.failed", resourceType: "minutes", resourceId: start.context.minutes.id, metadata: { meetingId: input.meetingId, minutesId: start.context.minutes.id, generationId: start.generationId, errorCode: resultCode } }, tx);
+   if (changed.length) await writeAuditLog({ organizationId: start.access.organizationId, userId: input.userId, action: AUDIT_ACTIONS.AI_TICKET_CANDIDATE_GENERATE_FAILED, resourceType: "minutes", resourceId: start.context.minutes.id, metadata: { meetingId: input.meetingId, minutesId: start.context.minutes.id, generationId: start.generationId, errorCode: resultCode } }, tx);
   });
   throw safeError;
  } finally { logCandidateMetric({ requestId, meetingId: input.meetingId, minutesId: start.context.minutes.id, modelId, promptVersion: TICKET_CANDIDATE_PROMPT_VERSION, schemaVersion: TICKET_CANDIDATE_SCHEMA_VERSION, durationMs: Date.now() - startedAt, inputBytes, ...metrics, candidateCount, result: resultCode }); }

@@ -1,7 +1,11 @@
+import { ApplicationError } from "@/lib/errors/application-error";
+import { limitAuditedOperations } from "@/lib/security/audit-rate-limit";
+import { AUDIT_ACTIONS } from "@/lib/security/audit-actions";
+import { logEvent } from "@/lib/logging/logger";
 import "server-only";
-import { and, count, eq, gte, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { meetings, meetingParticipants, users, auditLogs } from "@/lib/db/schema";
+import { meetings, meetingParticipants, users } from "@/lib/db/schema";
 import { requireMeetingAccess } from "@/lib/permissions/resource";
 import { BusinessError } from "@/lib/api/errors";
 import { AccessError } from "@/lib/permissions/errors";
@@ -14,7 +18,7 @@ import { getLiveKitIdentity, getLiveKitRoomName, liveConnectionEventSchema } fro
 type Db = ReturnType<typeof getDb>;
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Context = { userId: string; meetingId: string; requestId?: string };
-const actions = ["meeting.live.end.request", "meeting.live.connection", "meeting.live.start", "meeting.live.token.issue", "meeting.live.join", "meeting.live.leave", "meeting.live.end", "meeting.live.failed"] as const;
+const actions = [AUDIT_ACTIONS.MEETING_LIVE_END_REQUEST, AUDIT_ACTIONS.MEETING_LIVE_CONNECTION, AUDIT_ACTIONS.MEETING_LIVE_START, AUDIT_ACTIONS.MEETING_LIVE_TOKEN_ISSUE, AUDIT_ACTIONS.MEETING_LIVE_JOIN, AUDIT_ACTIONS.MEETING_LIVE_LEAVE, AUDIT_ACTIONS.MEETING_LIVE_END, AUDIT_ACTIONS.MEETING_LIVE_FAILED] as const;
 async function accessAndLock(ctx: Context, tx: Tx, write = false, cleanup = false) {
  const access = await requireMeetingAccess({ userId: ctx.userId, meetingId: ctx.meetingId, minimumRole: write ? "member" : "viewer" }, tx);
  if (!cleanup) await lockActiveProject(access.projectId, tx);
@@ -24,9 +28,7 @@ async function accessAndLock(ctx: Context, tx: Tx, write = false, cleanup = fals
  return { access, meeting };
 }
 async function limit(ctx: Context, tx: Tx) {
- await tx.select({ id: users.id }).from(users).where(eq(users.id, ctx.userId)).for("update");
- const [n] = await tx.select({ n: count() }).from(auditLogs).where(and(eq(auditLogs.userId, ctx.userId), inArray(auditLogs.action, [...actions]), gte(auditLogs.createdAt, new Date(Date.now() - 60000))));
- if (n.n >= 30) throw new BusinessError("LIVE_MEETING_RATE_LIMITED", 429, "会議操作が集中しています。1分後に再試行してください。");
+ await limitAuditedOperations(tx, ctx.userId, actions);
 }
 async function audit(ctx: Context, action: AuditInput["action"], tx: Pick<Db, "insert">, access: Awaited<ReturnType<typeof requireMeetingAccess>>, errorCode?: string) {
  await writeAuditLog({ organizationId: access.organizationId, userId: ctx.userId, action, resourceType: "meeting", resourceId: ctx.meetingId, metadata: { meetingId: ctx.meetingId, projectId: access.projectId, participantUserId: ctx.userId, role: access.role, requestId: ctx.requestId, errorCode } }, tx);
@@ -36,10 +38,10 @@ async function operation<T>(ctx: Context, name: string, db: Db, work: () => Prom
  const started = Date.now(); let result = "success";
  try { return await work(); }
  catch (e) {
-  const error = e instanceof BusinessError || e instanceof AccessError ? e : liveKitError(e); result = error.code;
-  if (error instanceof BusinessError && error.status >= 500) await audit(ctx, "meeting.live.failed", db, access, error.code);
+  const error = e instanceof ApplicationError ? e : liveKitError(e); result = error.code;
+  if (error instanceof BusinessError && error.status >= 500) await audit(ctx, AUDIT_ACTIONS.MEETING_LIVE_FAILED, db, access, error.code);
   throw error;
- } finally { console.info(JSON.stringify({ event: "live_meeting", ...ctx, projectId: access.projectId, operation: name, result, durationMs: Date.now() - started })); }
+ } finally { logEvent({ event: "live_meeting", ...ctx, projectId: access.projectId, operation: name, result, durationMs: Date.now() - started }); }
 }
 function enabled() { if (!liveMeetingEnabled()) throw new BusinessError("LIVE_MEETING_DISABLED", 503, "オンライン会議は現在利用できません。"); }
 function active(meeting: typeof meetings.$inferSelect) {
@@ -54,7 +56,7 @@ export function startLiveMeeting(ctx: Context, db = getDb()) {
   await liveMeetingProvider.ensureRoom(getLiveKitRoomName(ctx.meetingId));
   validateMeetingTransition(meeting.status, "recording");
   await tx.update(meetings).set({ status: "recording", liveStartedAt: meeting.liveStartedAt ?? new Date() }).where(eq(meetings.id, ctx.meetingId));
-  await audit(ctx, "meeting.live.start", tx, access); return { meetingId: ctx.meetingId, status: "recording" };
+  await audit(ctx, AUDIT_ACTIONS.MEETING_LIVE_START, tx, access); return { meetingId: ctx.meetingId, status: "recording" };
  }));
 }
 export function createMeetingToken(ctx: Context, db = getDb()) {
@@ -64,7 +66,7 @@ export function createMeetingToken(ctx: Context, db = getDb()) {
   if (!user) throw new AccessError("UNAUTHENTICATED");
   const roomName = getLiveKitRoomName(ctx.meetingId); await liveMeetingProvider.ensureRoom(roomName);
   const result = await liveMeetingProvider.createParticipantToken({ roomName, identity: getLiveKitIdentity(ctx.userId), displayName: user.name, role: access.role });
-  await audit(ctx, "meeting.live.token.issue", tx, access); return { ...result, meetingId: ctx.meetingId, canPublish: access.role !== "viewer" };
+  await audit(ctx, AUDIT_ACTIONS.MEETING_LIVE_TOKEN_ISSUE, tx, access); return { ...result, meetingId: ctx.meetingId, canPublish: access.role !== "viewer" };
  }));
 }
 export function joinLiveMeeting(ctx: Context, db = getDb()) {
@@ -76,14 +78,14 @@ export function joinLiveMeeting(ctx: Context, db = getDb()) {
   const [user] = await tx.select({ name: users.name }).from(users).where(eq(users.id, ctx.userId));
   if (current) await tx.update(meetingParticipants).set({ joinedAt: current.joinedAt && !current.leftAt ? current.joinedAt : new Date(), leftAt: null }).where(where);
   else await tx.insert(meetingParticipants).values({ meetingId: ctx.meetingId, userId: ctx.userId, displayName: user.name, role: "participant", joinedAt: new Date() });
-  await audit(ctx, "meeting.live.join", tx, access); return { meetingId: ctx.meetingId, joined: true };
+  await audit(ctx, AUDIT_ACTIONS.MEETING_LIVE_JOIN, tx, access); return { meetingId: ctx.meetingId, joined: true };
  }));
 }
 export function leaveLiveMeeting(ctx: Context, db = getDb()) {
  return operation(ctx, "leave", db, () => db.transaction(async (tx) => {
   const { access } = await accessAndLock(ctx, tx, false, true);
   await tx.update(meetingParticipants).set({ leftAt: new Date() }).where(and(eq(meetingParticipants.meetingId, ctx.meetingId), eq(meetingParticipants.userId, ctx.userId), isNotNull(meetingParticipants.joinedAt), isNull(meetingParticipants.leftAt)));
-  await audit(ctx, "meeting.live.leave", tx, access); return { meetingId: ctx.meetingId, left: true };
+  await audit(ctx, AUDIT_ACTIONS.MEETING_LIVE_LEAVE, tx, access); return { meetingId: ctx.meetingId, left: true };
  }));
 }
 export function endLiveMeeting(ctx: Context, db = getDb()) {
@@ -93,7 +95,7 @@ export function endLiveMeeting(ctx: Context, db = getDb()) {
    const { access, meeting } = await accessAndLock(ctx, tx, true, true); await limit(ctx, tx);
    if (!meeting.liveStartedAt || (!meeting.liveEndedAt && meeting.status !== "recording")) throw new BusinessError("MEETING_INVALID_STATUS", 409, "オンライン会議が開始されていません。");
    if (!meeting.liveEndedAt) await tx.update(meetings).set({ liveEndedAt: new Date() }).where(eq(meetings.id, ctx.meetingId));
-   await audit(ctx, "meeting.live.end.request", tx, access);
+   await audit(ctx, AUDIT_ACTIONS.MEETING_LIVE_END_REQUEST, tx, access);
   });
   return db.transaction(async (tx) => {
    const { access, meeting } = await accessAndLock(ctx, tx, true, true);
@@ -104,7 +106,7 @@ export function endLiveMeeting(ctx: Context, db = getDb()) {
     await tx.update(meetings).set({ status: "completed" }).where(eq(meetings.id, ctx.meetingId));
    }
    await tx.update(meetingParticipants).set({ leftAt: meeting.liveEndedAt ?? new Date() }).where(and(eq(meetingParticipants.meetingId, ctx.meetingId), isNotNull(meetingParticipants.joinedAt), isNull(meetingParticipants.leftAt)));
-   await audit(ctx, "meeting.live.end", tx, access); return { meetingId: ctx.meetingId, status: meeting.status === "recording" ? "completed" : meeting.status };
+   await audit(ctx, AUDIT_ACTIONS.MEETING_LIVE_END, tx, access); return { meetingId: ctx.meetingId, status: meeting.status === "recording" ? "completed" : meeting.status };
   });
  });
 }
@@ -115,7 +117,7 @@ export function recordLiveConnectionEvent(ctx: Context, input: unknown, db = get
  return operation(ctx, `connection.${event.data.state}`, db, () => db.transaction(async (tx) => {
   const { access, meeting } = await accessAndLock(ctx, tx, false, true); await limit(ctx, tx);
   if (!meeting.liveStartedAt) throw new BusinessError("MEETING_NOT_STARTED", 409, "会議が開始されていません。");
-  await writeAuditLog({ organizationId: access.organizationId, userId: ctx.userId, action: "meeting.live.connection", resourceType: "meeting", resourceId: ctx.meetingId, metadata: { meetingId: ctx.meetingId, projectId: access.projectId, requestId: ctx.requestId, connectionState: event.data.state } }, tx);
+  await writeAuditLog({ organizationId: access.organizationId, userId: ctx.userId, action: AUDIT_ACTIONS.MEETING_LIVE_CONNECTION, resourceType: "meeting", resourceId: ctx.meetingId, metadata: { meetingId: ctx.meetingId, projectId: access.projectId, requestId: ctx.requestId, connectionState: event.data.state } }, tx);
   return { recorded: true };
  }));
 }
