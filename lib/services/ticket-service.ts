@@ -1,4 +1,5 @@
 import "server-only";
+import { getTicketSource } from "./ticket-source-service";
 import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
@@ -24,7 +25,7 @@ export async function listTickets(userId: string, projectId: string, input: unkn
 }
 export async function getTicket(userId: string, ticketId: string, db: ReadDb = getDb()) {
  await requireTicketAccess({ userId, ticketId }, db);
- const [row] = await query(db).where(and(eq(tickets.id, ticketId), isNull(tickets.deletedAt))); if (!row) throw new AccessError("RESOURCE_NOT_FOUND"); return row;
+ const [row] = await query(db).where(and(eq(tickets.id, ticketId), isNull(tickets.deletedAt))); if (!row) throw new AccessError("RESOURCE_NOT_FOUND"); return { ...row, source: await getTicketSource(userId, row, db) };
 }
 export async function lockActiveProject(projectId: string, db: ReadDb) {
  const [row] = await db.select({ status: projects.status }).from(projects).where(eq(projects.id, projectId)).for("share");

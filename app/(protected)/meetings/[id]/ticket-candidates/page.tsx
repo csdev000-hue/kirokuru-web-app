@@ -1,3 +1,4 @@
+import { BulkRegisterCandidates } from "@/components/ticket-candidates/registration";
 import Link from "next/link";
 import { requirePageUser } from "@/lib/auth/page";
 import { getMeeting } from "@/lib/services/meeting-service";
@@ -15,7 +16,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
  return <main><Link href={`/meetings/${id}`}>会議に戻る</Link><h1>AIチケット候補</h1><p>{meeting.title}</p><p>候補の内容と根拠を人が確認してください。承認だけでは正式チケットは作成されません。</p>
  <nav aria-label="生成元の議事録">{versions.filter((v) => v.status === "approved").map((v) => <p key={v.id}><Link href={`?minutesId=${v.id}`}>承認済み議事録 Version {v.version}</Link></p>)}</nav>
  {selected?.status === "approved" ? <><p>生成元: Version {selected.version}</p>{canWrite && <GenerateCandidates key={selected.id} meetingId={id} minutesId={selected.id} regenerate={generations.some((g) => g.minutesId === selected.id && g.status === "completed")} />}</> : <p>生成には承認済み議事録が必要です。<Link href={`/meetings/${id}/minutes`}>議事録を確認</Link></p>}
- <nav aria-label="候補の状態">{([['', 'すべて'], ['pending', '確認待ち'], ['approved', '承認済み'], ['rejected', '却下済み']] as const).map(([status, label]) => <p key={status}><Link href={`?${new URLSearchParams({ ...(parsed.data.minutesId ? { minutesId: parsed.data.minutesId } : {}), ...(status ? { status } : {}) })}`}>{label}</Link></p>)}</nav>
- {candidates.length ? <><p>{candidates.length}件の候補</p>{candidates.map(({ createdAt, updatedAt, ...c }) => <CandidateReview key={`${c.id}-${updatedAt.toISOString()}-${createdAt.toISOString()}`} candidate={c} members={members.map(({ userId, name }) => ({ userId, name }))} canWrite={canWrite} />)}</> : <p>AIチケット候補はまだありません。生成結果が0件の場合もここに表示されます。</p>}
+ <nav aria-label="候補の状態">{([['', 'すべて'], ['pending', '確認待ち'], ['approved', '承認済み'], ['rejected', '却下済み'], ['registered', '登録済み']] as const).map(([status, label]) => <p key={status}><Link href={`?${new URLSearchParams({ ...(parsed.data.minutesId ? { minutesId: parsed.data.minutesId } : {}), ...(status ? { status } : {}) })}`}>{label}</Link></p>)}</nav>
+ {canWrite && <BulkRegisterCandidates key={candidates.map((c) => `${c.id}-${c.status}`).join(",")} candidates={candidates.filter((c) => c.status === "approved").map(({ id, title, priority }) => ({ id, title, priority }))} />}{candidates.length ? <><p>{candidates.length}件の候補</p>{candidates.map(({ createdAt, updatedAt, ...c }) => <CandidateReview key={`${c.id}-${updatedAt.toISOString()}-${createdAt.toISOString()}`} candidate={c} members={members.map(({ userId, name }) => ({ userId, name }))} canWrite={canWrite} />)}</> : <p>AIチケット候補はまだありません。生成結果が0件の場合もここに表示されます。</p>}
  </main>;
 }

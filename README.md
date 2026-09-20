@@ -181,3 +181,11 @@ API・検証・Retry・競合・長文上限・監査・Phase 7への前提は[P
 開発用DBへ`0004_phase_07_candidate_generations.sql`を適用して利用してください。Bedrock設定・入力上限・RetryはPhase 6の処理を共用しています。候補が0件の生成結果も履歴・冪等性の対象になります。
 
 API、Phase仕様を優先した設計差分、競合対策、監査とPhase 8への引継ぎは[Phase 7実装補足](docs/ai/ticket-candidate-implementation.md)を参照してください。
+
+## Phase 8 Candidate → Ticket Registration
+
+承認済み候補から「正式チケットとして登録」で通常Ticketを作成できます。一覧では最大50件の候補を一括登録できます。優先度が未設定の場合は登録できないため、レビュー時に設定してください。
+
+登録はTicket作成・Candidate更新・監査を同一Transactionで実行します。同一候補への再送では既存Ticketを返し、論理削除後も二重作成しません。Ticket詳細から元の会議・議事録・候補・根拠発言を追跡できます。
+
+追加DB Migrationはありません。API・競合制御・冪等性・エラー・テストの詳細は[Phase 8実装補足](docs/design/ticket-registration-implementation.md)を参照してください。

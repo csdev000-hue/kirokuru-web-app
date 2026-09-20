@@ -1,0 +1,22 @@
+import { expect, test } from "@playwright/test";
+test("Candidate登録・Bulk登録・Ticket一覧/Kanban・出典と根拠の追跡", async ({ page, context }) => {
+ const token = process.env.E2E_SESSION_TOKEN; if (!token) throw new Error("Missing test session");
+ await context.addCookies([{ name: "authjs.session-token", value: token, domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
+ const headers = { origin: "http://127.0.0.1:3100" }; const organizations = (await (await context.request.get("/api/organizations")).json()).data; const organizationId = organizations.find((o: { name: string }) => o.name === "Organization A").id;
+ const project = (await (await context.request.post("/api/projects", { headers, data: { name: "Registration E2E", organizationId } })).json()).data;
+ const meeting = (await (await context.request.post(`/api/projects/${project.id}/meetings`, { headers, data: { title: "候補生成会議", meetingDate: "2026-09-16T01:00:00Z" } })).json()).data;
+ expect((await context.request.post(`/api/meetings/${meeting.id}/transcripts`, { headers, data: { speakerName: "発言者", startedAt: 12, endedAt: 18, text: "API仕様を確認して更新する。", sequenceNo: 1 } })).status()).toBe(201);
+ await page.goto(`/meetings/${meeting.id}/minutes`); await page.getByRole("button", { name: "AI議事録を生成", exact: true }).click(); await expect(page.getByRole("heading", { name: "Version 1 · review" })).toBeVisible(); await page.getByRole("button", { name: "内容を確認して承認" }).click(); await expect(page.getByRole("heading", { name: "Version 1 · approved" })).toBeVisible();
+ await page.getByRole("link", { name: "AIチケット候補を確認" }).click(); await expect(page.getByText("AIチケット候補はまだありません", { exact: false })).toBeVisible(); await page.getByRole("button", { name: "AIチケット候補を生成", exact: true }).click(); await expect(page.getByText("2件の候補", { exact: true })).toBeVisible();
+ const first = page.getByRole("article", { name: "API仕様を更新する", exact: true });
+ await expect(first.getByRole("button", { name: "正式チケットとして登録", exact: true })).toHaveCount(0);
+ await first.getByLabel("優先度", { exact: true }).selectOption("high"); await first.getByRole("button", { name: "候補を保存" }).click(); await expect(first.getByRole("button", { name: "承認", exact: true })).toBeEnabled(); await first.getByRole("button", { name: "承認", exact: true }).click();
+ await first.getByRole("button", { name: "正式チケットとして登録", exact: true }).click(); await expect(first.getByText("状態: 登録済み候補", { exact: true })).toBeVisible(); await first.getByRole("link", { name: "正式チケットを見る", exact: true }).click();
+ await expect(page.getByRole("heading", { name: "API仕様を更新する", exact: true })).toBeVisible(); const ticketUrl = page.url();
+ const source = page.getByRole("region", { name: "作成元" }); await expect(source.getByText("このチケットは会議から作成されました")).toBeVisible(); await source.getByRole("link", { name: "元の議事録 Version 1" }).click(); await expect(page.getByRole("heading", { name: "Version 1 · approved" })).toBeVisible();
+ await page.goto(ticketUrl); await page.getByRole("link", { name: "元の候補・根拠発言" }).click(); await expect(page.getByRole("heading", { name: "チケット候補の確認" })).toBeVisible(); await page.getByRole("link", { name: /発言を確認/ }).click(); await expect(page.locator("li:target")).toContainText("API仕様を確認して更新する。");
+ await page.goto(`/projects/${project.id}/tickets`); await expect(page.getByRole("link", { name: "API仕様を更新する", exact: true })).toBeVisible(); await page.goto(`/projects/${project.id}/board`); await expect(page.getByRole("region", { name: "todo", exact: true }).getByRole("link", { name: "API仕様を更新する", exact: true })).toBeVisible();
+ await page.goto(`/meetings/${meeting.id}/ticket-candidates`); const second = page.getByRole("article", { name: "API仕様を確認する", exact: true }); await second.getByLabel("優先度", { exact: true }).selectOption("medium"); await second.getByRole("button", { name: "候補を保存" }).click(); await expect(second.getByRole("button", { name: "承認", exact: true })).toBeEnabled(); await second.getByRole("button", { name: "承認", exact: true }).click();
+ const bulkSection = page.getByRole("region", { name: "候補の一括登録" }); await bulkSection.getByRole("checkbox", { name: "API仕様を確認する", exact: true }).check(); await bulkSection.getByRole("button", { name: "選択した候補を正式登録", exact: true }).click(); await expect(second.getByText("状態: 登録済み候補", { exact: true })).toBeVisible();
+ const tickets = await (await context.request.get(`/api/projects/${project.id}/tickets`)).json(); expect(tickets.data).toHaveLength(2);
+});
