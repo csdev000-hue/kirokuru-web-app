@@ -219,3 +219,6 @@ Rate設定、Auth.js/204のレスポンス例外、機能別レビュー、運�
 
 Unit 162 / Integration 352 / Security 209件と、E2E 50件を3回連続で検証しました。公開判定は **NOT READY** です。実Provider・環境分離・監視・復旧確認が残っています。
 [最終QA報告](docs/testing/phase-12-report.md)、[Test Inventory](docs/testing/phase-12-inventory.md)、[公開前チェックリスト](ops/phase-12-release-checklist.md)を参照してください。
+
+2026-09-22の[公開前再検証結果](docs/testing/phase-12-revalidation-report.md)を追加しました。ローカル論理バックアップ復元を検証済みですが、実環境の分離・接続・通知・Neon復元はBLOCKEDです。[再検証手順](ops/phase-12-revalidation-runbook.md)に必要設定と完了条件を記載しています。
+`npx tsx scripts/check-environment-isolation.ts`は値を表示しないオフライン存在確認です。実環境分離は証明できないためexit 2/BLOCKEDを返します。

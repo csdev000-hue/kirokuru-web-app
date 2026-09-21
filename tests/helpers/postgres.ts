@@ -16,7 +16,7 @@ export function assertTestDatabase(context: object) {
   }
 }
 
-async function postgresBin() {
+export async function postgresBin() {
   if (process.env.PG_BIN) return process.env.PG_BIN;
   try {
     return (await exec("pg_config", ["--bindir"])).stdout.trim();

@@ -1,0 +1,324 @@
+{
+  "baseline": "9290902",
+  "node": "24.11.1",
+  "scope": "local temporary databases and provider mocks only; no production access",
+  "runs": [
+    {
+      "name": "install",
+      "command": "npm ci",
+      "start": "2026-09-21T16:15:00.767538+00:00",
+      "end": "2026-09-21T16:15:20.999036+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "149f1b3bd73acd4c85a3ce21a76812cf4a6b9f8ffc1fe0631d62feea3518ef95"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "start": "2026-09-21T16:15:21.000821+00:00",
+      "end": "2026-09-21T16:15:25.953300+00:00",
+      "exitCode": 0
+    },
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "start": "2026-09-21T16:15:25.953852+00:00",
+      "end": "2026-09-21T16:15:32.044910+00:00",
+      "exitCode": 2
+    },
+    {
+      "name": "unit",
+      "command": "npm run test:run",
+      "start": "2026-09-21T16:15:32.045277+00:00",
+      "end": "2026-09-21T16:15:35.599618+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 162,
+      "localLogSha256": "a1e95d4d856847d6f62b3bb81a66306996db16abaa4acb0880eb5bb51a36b5af"
+    },
+    {
+      "name": "integration",
+      "command": "npm run test:integration",
+      "start": "2026-09-21T16:15:35.600012+00:00",
+      "end": "2026-09-21T16:15:41.732236+00:00",
+      "exitCode": 0
+    },
+    {
+      "name": "security",
+      "command": "npm run test:security",
+      "start": "2026-09-21T16:15:41.732917+00:00",
+      "end": "2026-09-21T16:15:46.526395+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 209,
+      "localLogSha256": "af06ca0eaf52e0eed13b9bf3716b8db1456238fb4edbf9ce6edd731287c531bf"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "start": "2026-09-21T16:15:46.526828+00:00",
+      "end": "2026-09-21T16:15:54.123438+00:00",
+      "exitCode": 1
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "start": "2026-09-21T16:18:02.350128+00:00",
+      "end": "2026-09-21T16:18:07.093365+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "07d14219ac54185809459359ab6f9ce3d9df69b776ad861da4668092d160b3c8"
+    },
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "start": "2026-09-21T16:18:07.093973+00:00",
+      "end": "2026-09-21T16:18:10.310473+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "863714f1ec9a0afc698da221c2a0e167c4d766e39ab6aa9fe3eb9798dea4a815"
+    },
+    {
+      "name": "integration",
+      "command": "npm run test:integration",
+      "start": "2026-09-21T16:18:10.310929+00:00",
+      "end": "2026-09-21T16:18:18.075452+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 353,
+      "localLogSha256": "91d9cfe4d6e8d2636d68d913f0fae2b18fe7ba5730ef442c99da9a26ca9abc27"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "start": "2026-09-21T16:18:18.076248+00:00",
+      "end": "2026-09-21T16:18:23.970804+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "5dfcf1a68cdbee662fa628c13fc8f2bb2e9cb389d85eae1c72b40dd5ce63980e"
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "start": "2026-09-21T16:18:23.971904+00:00",
+      "end": "2026-09-21T16:18:59.390970+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 50,
+      "localLogSha256": "e4572e86f8cfe8f4b63d39a31d3c74425ccbd3e4c38e38875686f3cb84fbd489"
+    },
+    {
+      "name": "secrets",
+      "command": "npm run security:secrets",
+      "start": "2026-09-21T16:18:59.392230+00:00",
+      "end": "2026-09-21T16:18:59.772121+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "e7f176590bffe36b2c291721b0b9b901711b4abdc8ff27fe152b62dfc2ad4844"
+    },
+    {
+      "name": "client",
+      "command": "npm run security:client",
+      "start": "2026-09-21T16:18:59.772525+00:00",
+      "end": "2026-09-21T16:19:00.012313+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "50595e2916c5ed7a6b75a97f3f8c15d36cc4a087be421d57291b8e38de8639b2"
+    },
+    {
+      "name": "audit",
+      "command": "npm audit",
+      "start": "2026-09-21T16:19:00.012764+00:00",
+      "end": "2026-09-21T16:19:01.003762+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "name": "migration",
+      "command": "npm run db:generate",
+      "start": "2026-09-21T16:19:01.004531+00:00",
+      "end": "2026-09-21T16:19:02.117514+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "2b4c2ee547e9dd98668bfd2511802e21347143e45b6258496889163391d775e0"
+    },
+    {
+      "name": "recovery",
+      "command": "npx vitest run tests/integration/qa-recovery.test.ts --reporter=verbose",
+      "start": "2026-09-21T16:19:51.424966+00:00",
+      "end": "2026-09-21T16:19:56.038857+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 1,
+      "localLogSha256": "8fbc6f82d6e539464b1d3e94a0274cf942c9790e3bc3acc67266054f97afca3f"
+    },
+    {
+      "name": "isolation",
+      "command": "npx tsx scripts/check-environment-isolation.ts",
+      "start": "2026-09-21T16:19:56.038947+00:00",
+      "end": "2026-09-21T16:19:56.372802+00:00",
+      "exitCode": 2,
+      "status": "BLOCKED",
+      "localLogSha256": "87650cae7803fada191beff6caaded54b6a96e065f616c5f31c5010e220b5f2f"
+    },
+    {
+      "name": "readiness",
+      "command": "npm run security:readiness",
+      "start": "2026-09-21T16:19:56.372857+00:00",
+      "end": "2026-09-21T16:19:56.666563+00:00",
+      "exitCode": 1,
+      "status": "FAIL",
+      "localLogSha256": "91a467e7326daabef0fd17546922db1621f2f95208493ab6b27adbac01e20a21"
+    }
+  ],
+  "latest": {
+    "install": {
+      "name": "install",
+      "command": "npm ci",
+      "start": "2026-09-21T16:15:00.767538+00:00",
+      "end": "2026-09-21T16:15:20.999036+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "149f1b3bd73acd4c85a3ce21a76812cf4a6b9f8ffc1fe0631d62feea3518ef95"
+    },
+    "lint": {
+      "name": "lint",
+      "command": "npm run lint",
+      "start": "2026-09-21T16:18:02.350128+00:00",
+      "end": "2026-09-21T16:18:07.093365+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "07d14219ac54185809459359ab6f9ce3d9df69b776ad861da4668092d160b3c8"
+    },
+    "typecheck": {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "start": "2026-09-21T16:18:07.093973+00:00",
+      "end": "2026-09-21T16:18:10.310473+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "863714f1ec9a0afc698da221c2a0e167c4d766e39ab6aa9fe3eb9798dea4a815"
+    },
+    "unit": {
+      "name": "unit",
+      "command": "npm run test:run",
+      "start": "2026-09-21T16:15:32.045277+00:00",
+      "end": "2026-09-21T16:15:35.599618+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 162,
+      "localLogSha256": "a1e95d4d856847d6f62b3bb81a66306996db16abaa4acb0880eb5bb51a36b5af"
+    },
+    "integration": {
+      "name": "integration",
+      "command": "npm run test:integration",
+      "start": "2026-09-21T16:18:10.310929+00:00",
+      "end": "2026-09-21T16:18:18.075452+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 353,
+      "localLogSha256": "91d9cfe4d6e8d2636d68d913f0fae2b18fe7ba5730ef442c99da9a26ca9abc27"
+    },
+    "security": {
+      "name": "security",
+      "command": "npm run test:security",
+      "start": "2026-09-21T16:15:41.732917+00:00",
+      "end": "2026-09-21T16:15:46.526395+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 209,
+      "localLogSha256": "af06ca0eaf52e0eed13b9bf3716b8db1456238fb4edbf9ce6edd731287c531bf"
+    },
+    "build": {
+      "name": "build",
+      "command": "npm run build",
+      "start": "2026-09-21T16:18:18.076248+00:00",
+      "end": "2026-09-21T16:18:23.970804+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "5dfcf1a68cdbee662fa628c13fc8f2bb2e9cb389d85eae1c72b40dd5ce63980e"
+    },
+    "e2e": {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "start": "2026-09-21T16:18:23.971904+00:00",
+      "end": "2026-09-21T16:18:59.390970+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 50,
+      "localLogSha256": "e4572e86f8cfe8f4b63d39a31d3c74425ccbd3e4c38e38875686f3cb84fbd489"
+    },
+    "secrets": {
+      "name": "secrets",
+      "command": "npm run security:secrets",
+      "start": "2026-09-21T16:18:59.392230+00:00",
+      "end": "2026-09-21T16:18:59.772121+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "e7f176590bffe36b2c291721b0b9b901711b4abdc8ff27fe152b62dfc2ad4844"
+    },
+    "client": {
+      "name": "client",
+      "command": "npm run security:client",
+      "start": "2026-09-21T16:18:59.772525+00:00",
+      "end": "2026-09-21T16:19:00.012313+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "50595e2916c5ed7a6b75a97f3f8c15d36cc4a087be421d57291b8e38de8639b2"
+    },
+    "audit": {
+      "name": "audit",
+      "command": "npm audit",
+      "start": "2026-09-21T16:19:00.012764+00:00",
+      "end": "2026-09-21T16:19:01.003762+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    "migration": {
+      "name": "migration",
+      "command": "npm run db:generate",
+      "start": "2026-09-21T16:19:01.004531+00:00",
+      "end": "2026-09-21T16:19:02.117514+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "localLogSha256": "2b4c2ee547e9dd98668bfd2511802e21347143e45b6258496889163391d775e0"
+    },
+    "recovery": {
+      "name": "recovery",
+      "command": "npx vitest run tests/integration/qa-recovery.test.ts --reporter=verbose",
+      "start": "2026-09-21T16:19:51.424966+00:00",
+      "end": "2026-09-21T16:19:56.038857+00:00",
+      "exitCode": 0,
+      "status": "PASS",
+      "passedTests": 1,
+      "localLogSha256": "8fbc6f82d6e539464b1d3e94a0274cf942c9790e3bc3acc67266054f97afca3f"
+    },
+    "isolation": {
+      "name": "isolation",
+      "command": "npx tsx scripts/check-environment-isolation.ts",
+      "start": "2026-09-21T16:19:56.038947+00:00",
+      "end": "2026-09-21T16:19:56.372802+00:00",
+      "exitCode": 2,
+      "status": "BLOCKED",
+      "localLogSha256": "87650cae7803fada191beff6caaded54b6a96e065f616c5f31c5010e220b5f2f"
+    },
+    "readiness": {
+      "name": "readiness",
+      "command": "npm run security:readiness",
+      "start": "2026-09-21T16:19:56.372857+00:00",
+      "end": "2026-09-21T16:19:56.666563+00:00",
+      "exitCode": 1,
+      "status": "FAIL",
+      "localLogSha256": "91a467e7326daabef0fd17546922db1621f2f95208493ab6b27adbac01e20a21"
+    }
+  },
+  "recoveryMeasurement": {
+    "scope": "local PostgreSQL fixtures only",
+    "tables": 17,
+    "backupMs": 176,
+    "restoreAndVerifyMs": 1006,
+    "postBackupWritesRestored": false
+  }
+}

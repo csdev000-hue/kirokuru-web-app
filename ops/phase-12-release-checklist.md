@@ -1,6 +1,6 @@
 # Phase 12 Release gate / Runbook
 
-この文書は手順と確認待ち項目であり、Production操作を実行した記録ではない。最終判定はdocs/testing/phase-12-report.md参照。
+この文書は手順と確認待ち項目であり、Production操作を実行した記録ではない。初回判定はdocs/testing/phase-12-report.md、最新再検証はdocs/testing/phase-12-revalidation-report.md参照。
 
 ## 公開前に人間が確認する項目
 
@@ -46,3 +46,40 @@ DB障害は共通SERVICE_UNAVAILABLE/INTERNAL_ERROR等、ProviderはAI_*/S3_*/LI
 - Appは承認済み前Deployment/Tagへ戻す。DBに追加された列/tableを直ちにDROPするdown migrationは作らない。互換性を確認しforward fixを優先、破壊的問題は承認済backup restore。
 - AI/Recording/LiveKit flagで新規操作を停止できるが、発行済みURL/Token、接続中メディアの即時失効を保証しない。
 - Secret漏えい時はアクセス遮断→証跡保全→Auth Secret/Provider鍵のローテーション→Session失効の実効確認→影響評価。JWT複製やLiveKit更新Tokenの制約を無視しない。実値をチケット・ログへ貼らない。
+
+## 2026-09-22 再検証台帳（STEP 1 / STEP 9）
+
+分類は初回棚卸し時点の不足種別。PASSは明記した試験範囲のみ。BLOCKEDは前提不足で試験未実施、FAILは実行した検査不合格、NOT RUNは対象外/禁止。既存checkboxは未達の公開条件なのでチェックしない。
+
+台帳の判定日時: 2026-09-22 JST（正確なUTC実行時刻はevidence JSON）。手順の詳細は[再検証Runbook](phase-12-revalidation-runbook.md)、結果は[再検証報告](../docs/testing/phase-12-revalidation-report.md)。
+
+| ID | 確認事項 | 分類 | 状態 | 現状・結果 | 必要作業・残課題 | 実施環境 | 完了条件 | 実施コマンド・試験方法・証跡 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| R01 | Release承認 | 人間による操作が必要 | BLOCKED | 前回NOT READY、公開承認なし | 責任者が残リスク/無効化機能を承認 | 管理プロセス | 全blocker証跡と承認記録 | 前回報告/今回再検証報告 |
+| R02 | GitHub CI/Required Checks | 実環境未確認 | BLOCKED | CI定義あり、remote設定未取得 | 安全なPRでCI実行、branch保護を確認 | GitHub | CI URL/commitと必須check設定 |  .github/workflows/ci.ymlレビュー |
+| R03 | Vercel/Neon/AWS/LiveKit/Auth分離 | 実環境未確認 | BLOCKED | Vercel linkなし、実envなし、AWS store用途不明 | 環境ID/scope/IAM/ACL証跡を提供 | Dev/Test/Preview | Production権限なしを非機密証跡で確認 | isolation JSON/Runbook環境表 |
+| R04 | Google OAuth | 外部サービスの認証情報不足 | BLOCKED | 専用Client/Secret/Auth URL/DBなし | 専用clientと2テストユーザー、callback設定 | Dev/Test | login/callback/session/logout/越境拒否 | shell/file存在検査、Auth Mock回帰は別記 |
+| R05 | Neon接続/最小権限/TLS | 外部サービスの認証情報不足 | BLOCKED | Project/Branch/安全な資格情報未特定 | runtime/migration role、接続/SELECT 1/CRUD確認 | Dev/Test | 安全な接続/CRUD/role確認 | 設定存在検査、ローカルDBは代替試験 |
+| R06 | Staging Migration/lock | 実環境未確認 | BLOCKED | SQL/FreshDB検証あり、実Stagingなし | 非Production既存相当データで適合/lock検証 | Staging | journal/schema一致とlock評価 | drizzle/migrations、Test回帰 |
+| R07 | Bedrock実モデル/費用 | 外部サービスの認証情報不足 | BLOCKED | model/region/専用role/費用上限不明 | 権限/上限確認後、合成入力最小呼出 | Dev/Test | 実Converse/JSON Schema/根拠検証 | 環境検査、Mock回帰は別記 |
+| R08 | S3 private/CRUD/CORS | 外部サービスの認証情報不足 | BLOCKED | bucket/role分離・費用未確認 | 小object PUT/HEAD/GET/DELETE/匿名拒否 | Dev/Test | 実object結果とIAM/private証跡 | infra/awsはtemplate、実設定証拠なし |
+| R09 | LiveKit Server | 外部サービスの認証情報不足 | BLOCKED | project/鍵所属/上限不明 | 専用Room/Token/2参加者/退出/終了 | Dev/Test | Server API結果、Room不存在 | Mock回帰は別記 |
+| R10 | LiveKit実メディア/終了後JWT | 人間による操作が必要 | BLOCKED | 実SFU/2端末未検証 | 音声/映像/Share/reconnect/終了後再入室確認 | Dev/Test実ブラウザー | Serverと別のメディア証跡 | Runbookに手順、Live flag変更なし |
+| R11 | 環境設定readiness | 設定不足 | FAIL | 必須Auth/DB/flag未設定 | Dev/Test専用値を安全なstoreに設定 | Local/Dev/Test | offline設定検査成功＋別途実接続 | npm run security:readiness、exit 1 |
+| R12 | AWS Budget通知 | 実環境未確認 | BLOCKED | 対象Account/予算/購読/通知先不明 | 専用Account設定とsynthetic通知到達確認 | Dev/Test管理面 | 閾値/購読と受信証跡 | Runbook監視表、実AWS未呼出 |
+| R13 | Bedrock利用量/障害通知 | 実環境未確認 | BLOCKED | ログ実装あり、CloudWatch設定未確認 | metric/log集計とTest通知 | Dev/Test | 設定＋通知受信時刻 | logging実装/Runbook |
+| R14 | S3容量/障害通知 | 実環境未確認 | BLOCKED | 日次容量/Alarm/通知先未確認 | 対象bucketのmetric/Alarm/購読確認 | Dev/Test | 設定＋Test通知受信 | Runbook監視表 |
+| R15 | API 5xx/Provider障害通知 | 実環境未確認 | BLOCKED | 安全ログあり、drain/集計/通知不明 | synthetic eventで集計から到達まで確認 | Dev/Test | requestId/試験ID/受信時刻 | logger/security回帰は配送証拠ではない |
+| R16 | LiveKit利用量 | 実環境未確認 | BLOCKED | 契約/usage/通知先不明 | API利用可否確認、不可指標は手動担当設定 | Dev/Test管理面 | usage/費用/通知または手動確認記録 | 公式Analytics資料/Runbook |
+| R17 | Neon利用量/契約/履歴窓 | 実環境未確認 | BLOCKED | ユーザーのplan/restore window不明 | Consoleでplan/usage/復元可能時点を確認 | Neon管理面 | 契約名と機能/窓の非機密証跡 | 公開plan資料は契約の証明ではない |
+| R18 | Neon隔離復元/RPO/RTO | 人間による操作が必要 | BLOCKED | 安全なsource/target未確認 | 合成データから新Test復元先へ演習 | Test Neon | 整合性/復元時刻/所要時間 | Runbook復元手順、実Neon未接続 |
+| R19 | 論理dump/restore代替方式 | テスト不足 | PASS | 新規ローカル回帰試験を追加 | pg_dump→新規DB→pg_restore/照合を実施済み | Local一時PostgreSQL | 17テーブル/履歴/リンク/制約一致 | QA-DR-01、Neon PITR/RPO/RTOは対象外 |
+| R20 | ローカル回帰/Secret/Build | テスト不足 | PASS | 必須ローカル回帰成功 | 実環境検証は別途必要 | Local/Mock | 全必須チェック成功、skipなし | 再検証report/command evidence |
+| R21 | Production操作 | 人間による操作が必要 | NOT RUN | 今回禁止 | 変更案/影響/Rollbackのみ文書化 | Production | この作業では実行しない | Runbook変更案、Production無変更 |
+
+共通の設定・分離調査: `npx tsx scripts/check-environment-isolation.ts`、Git status/log、AGENTS/設計・コードレビュー。Production SecretもAWS credentialファイル内容も取得していない。
+
+- [分離調査の証跡](../docs/testing/evidence/phase-12-isolation-2026-09-22.json): 2026-09-22 01:13:59 JST、exit 2/BLOCKED。
+- `security:readiness`: 同日01:14頃JST、必須9項目不足でexit 1/FAIL。実環境設定なしを検出した結果であり、通すためのダミー設定追加はしない。
+- R04–R10、R12–R18: 同日調査時点でBLOCKED判定、実接続/通知試験日時は「未実施」。環境分離・費用の確認不能が理由。
+- R19/R20の正確な実施時刻・コマンド・件数は[実行証跡](../docs/testing/evidence/phase-12-revalidation-commands.json)を参照。
