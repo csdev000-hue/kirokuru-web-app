@@ -34,5 +34,6 @@ jobs:
           npm run db:generate
           test -z "$(git status --porcelain -- drizzle/migrations)"
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
+      - run: npm run security:client

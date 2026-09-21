@@ -1,8 +1,8 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { ticketCandidates, meetingMinutes, candidateGenerations } from "@/lib/db/schema";
+import { ticketCandidates, meetingMinutes, candidateGenerations, meetingTranscripts } from "@/lib/db/schema";
 import { requireMeetingAccess, requireTicketCandidateAccess } from "@/lib/permissions/resource";
 import { getProjectMembership } from "@/lib/permissions/project";
 import { AccessError } from "@/lib/permissions/errors";
@@ -17,18 +17,31 @@ export async function getTicketCandidate(userId: string, candidateId: string, db
  await requireTicketCandidateAccess({ userId, candidateId }, db);
  const [row] = await db.select().from(ticketCandidates).where(eq(ticketCandidates.id, candidateId));
  if (!row || !row.minutesId) throw new AccessError("RESOURCE_NOT_FOUND");
+ const transcripts = await listMinutesEvidence(userId, row.meetingId, db);
+ const [minutes] = await db.select({version:meetingMinutes.version}).from(meetingMinutes).where(and(eq(meetingMinutes.id,row.minutesId),eq(meetingMinutes.meetingId,row.meetingId)));
+ if(!minutes) throw new AccessError("RESOURCE_NOT_FOUND");
+ return candidateOutput(row,minutes.version,transcripts);
+}
+function candidateOutput(row: typeof ticketCandidates.$inferSelect, version: number, transcripts: Awaited<ReturnType<typeof listMinutesEvidence>>) {
+ if(!row.minutesId)throw new AccessError("RESOURCE_NOT_FOUND");
  const content = candidateContentSchema.parse({ title: row.title, description: row.description, type: row.type, priority: row.priority, assigneeId: row.assigneeId, dueDate: row.dueDate });
  const confidence = row.confidence === null ? null : z.number().min(0).max(1).parse(Number(row.confidence));
  const ids = z.array(z.uuid()).min(1).max(10).parse(row.sourceTranscriptIds);
- const transcripts = await listMinutesEvidence(userId, row.meetingId, db); const sourceEvidence = ids.map((id) => { const t = transcripts.find((t) => t.id === id); if (!t) throw new BusinessError("AI_TICKET_EVIDENCE_INVALID", 422, "候補の根拠を確認できません。"); return { transcriptId: id, startedAt: t.startedAt, endedAt: t.endedAt, speakerName: t.speakerName, sequenceNo: t.sequenceNo, text: t.text }; });
- const [minutes] = await db.select({ version: meetingMinutes.version }).from(meetingMinutes).where(and(eq(meetingMinutes.id, row.minutesId), eq(meetingMinutes.meetingId, row.meetingId)));
- if (!minutes) throw new AccessError("RESOURCE_NOT_FOUND");
- return { id: row.id, projectId: row.projectId, meetingId: row.meetingId, minutesId: row.minutesId, minutesVersion: minutes.version, generationId: row.generationId, ...content, confidence, status: row.status, sourceEvidence, sourceQuote: sourceEvidence[0]?.text.slice(0, 300) ?? null, aiModel: row.aiModel, promptVersion: row.promptVersion, schemaVersion: row.schemaVersion, registeredTicketId: row.registeredTicketId, createdAt: row.createdAt, updatedAt: row.updatedAt };
+ const sourceEvidence = ids.map((id) => { const t = transcripts.find((t) => t.id === id); if (!t) throw new BusinessError("AI_TICKET_EVIDENCE_INVALID", 422, "候補の根拠を確認できません。"); return { transcriptId: id, startedAt: t.startedAt, endedAt: t.endedAt, speakerName: t.speakerName, sequenceNo: t.sequenceNo, text: t.text }; });
+ return { id: row.id, projectId: row.projectId, meetingId: row.meetingId, minutesId: row.minutesId, minutesVersion: version, generationId: row.generationId, ...content, confidence, status: row.status, sourceEvidence, sourceQuote: sourceEvidence[0]?.text.slice(0, 300) ?? null, aiModel: row.aiModel, promptVersion: row.promptVersion, schemaVersion: row.schemaVersion, registeredTicketId: row.registeredTicketId, createdAt: row.createdAt, updatedAt: row.updatedAt };
 }
 export async function listTicketCandidates(userId: string, meetingId: string, input: unknown = {}, db: ReadDb = getDb()) {
- await requireMeetingAccess({ userId, meetingId }, db); const parsed = candidateQuerySchema.safeParse(input); if (!parsed.success) throw validationError(); const f = parsed.data;
- const ids = await db.select({ id: ticketCandidates.id }).from(ticketCandidates).where(and(eq(ticketCandidates.meetingId, meetingId), f.status ? eq(ticketCandidates.status, f.status) : undefined, f.minutesId ? eq(ticketCandidates.minutesId, f.minutesId) : undefined, f.type ? eq(ticketCandidates.type, f.type) : undefined, f.priority ? eq(ticketCandidates.priority, f.priority) : undefined, f.assigneeId ? eq(ticketCandidates.assigneeId, f.assigneeId) : undefined)).orderBy(desc(ticketCandidates.createdAt), ticketCandidates.id);
- return Promise.all(ids.map((r) => getTicketCandidate(userId, r.id, db)));
+ const access = await requireMeetingAccess({userId,meetingId},db);
+ const parsed=candidateQuerySchema.safeParse(input);if(!parsed.success)throw validationError();const f=parsed.data;
+ const rows=await db.select({candidate:ticketCandidates,version:meetingMinutes.version}).from(ticketCandidates)
+ .innerJoin(meetingMinutes,and(eq(meetingMinutes.id,ticketCandidates.minutesId),eq(meetingMinutes.meetingId,ticketCandidates.meetingId)))
+ .where(and(eq(ticketCandidates.projectId,access.projectId),eq(ticketCandidates.meetingId,meetingId),f.status?eq(ticketCandidates.status,f.status):undefined,f.minutesId?eq(ticketCandidates.minutesId,f.minutesId):undefined,f.type?eq(ticketCandidates.type,f.type):undefined,f.priority?eq(ticketCandidates.priority,f.priority):undefined,f.assigneeId?eq(ticketCandidates.assigneeId,f.assigneeId):undefined))
+ .orderBy(desc(ticketCandidates.createdAt),ticketCandidates.id).limit(f.limit).offset((f.page-1)*f.limit);
+ if(!rows.length)return [];
+ const ids=[...new Set(rows.flatMap(({candidate})=>z.array(z.uuid()).min(1).max(10).parse(candidate.sourceTranscriptIds)))];
+ const evidence=await db.select({id:meetingTranscripts.id,sequenceNo:meetingTranscripts.sequenceNo,speakerName:meetingTranscripts.speakerName,startedAt:meetingTranscripts.startedAt,endedAt:meetingTranscripts.endedAt,text:meetingTranscripts.text}).from(meetingTranscripts).where(and(eq(meetingTranscripts.meetingId,meetingId),inArray(meetingTranscripts.id,ids)));
+ const transcripts=evidence.map(r=>({...r,startedAt:Number(r.startedAt),endedAt:r.endedAt===null?null:Number(r.endedAt)}));
+ return rows.map(({candidate,version})=>candidateOutput(candidate,version,transcripts));
 }
 async function mutateCandidate(userId: string, candidateId: string, input: unknown, action: "update" | "approve" | "reject", db = getDb()) {
  const parsed = updateCandidateSchema.safeParse(input); if (action === "update" && !parsed.success) throw validationError();

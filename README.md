@@ -212,3 +212,10 @@ API・Migration・障害時の再試行・検証範囲は [オンライン会議
 - `npm audit`: 依存脆弱性の確認。CIはHigh/Criticalで失敗します。
 
 Rate設定、Auth.js/204のレスポンス例外、機能別レビュー、運用上の制約は[Phase 11実装補足](docs/security/phase-11-hardening.md)を参照してください。
+
+### Phase 12: QA / Production Readiness
+
+人間のレビューを含む全体フロー、権限・テナント分離、3ブラウザー、画面幅・キーボード・エラー表示、原子性・競合・一覧性能の検証を追加しました。候補一覧は既定50件・最大100件のページングに対応し、N+1を解消しています。DB Migrationの追加はありません。
+
+Unit 162 / Integration 352 / Security 209件と、E2E 50件を3回連続で検証しました。公開判定は **NOT READY** です。実Provider・環境分離・監視・復旧確認が残っています。
+[最終QA報告](docs/testing/phase-12-report.md)、[Test Inventory](docs/testing/phase-12-inventory.md)、[公開前チェックリスト](ops/phase-12-release-checklist.md)を参照してください。
