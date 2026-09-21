@@ -222,3 +222,8 @@ Unit 162 / Integration 352 / Security 209件と、E2E 50件を3回連続で検�
 
 2026-09-22の[公開前再検証結果](docs/testing/phase-12-revalidation-report.md)を追加しました。ローカル論理バックアップ復元を検証済みですが、実環境の分離・接続・通知・Neon復元はBLOCKEDです。[再検証手順](ops/phase-12-revalidation-runbook.md)に必要設定と完了条件を記載しています。
 `npx tsx scripts/check-environment-isolation.ts`は値を表示しないオフライン存在確認です。実環境分離は証明できないためexit 2/BLOCKEDを返します。
+
+### Phase Infra-Verify（初回準備）
+
+非本番の[環境台帳](ops/nonprod-environment-inventory.md)、[構築計画](ops/nonprod-provisioning-plan.md)、[管理者作業](ops/nonprod-admin-actions.md)、[月3,000円の費用評価](ops/nonprod-cost-estimate.md)を追加しました。
+Cloud Applyは未実施です。CDK/Budget Guard専用仕様・実装は未確認/不足で、infra/nonprod/は未適用の設定案です。公開判定はNOT READYを維持します。

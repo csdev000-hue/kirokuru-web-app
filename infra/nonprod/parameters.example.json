@@ -1,0 +1,22 @@
+{
+  "status": "DRAFT_NOT_APPLIED",
+  "cloudApplyApproved": false,
+  "nonproductionAwsAccountId": null,
+  "awsRegion": null,
+  "awsCliProfile": null,
+  "cdkStackName": null,
+  "vercelTeamSlug": null,
+  "vercelProjectName": null,
+  "vercelIssuerMode": null,
+  "allowedVercelEnvironments": ["development", "preview"],
+  "s3BucketName": null,
+  "allowedCorsOrigins": [],
+  "runtimeRoleArn": null,
+  "bedrockModelId": null,
+  "bedrockResourceArns": [],
+  "monthlyTotalBudgetJpy": 3000,
+  "approvedAwsBudgetUsd": null,
+  "approvedExchangeRateJpyPerUsd": null,
+  "notificationRecipientReference": null,
+  "featureFlags": {"AI_ENABLED": false, "RECORDING_ENABLED": false, "LIVE_MEETING_ENABLED": false}
+}

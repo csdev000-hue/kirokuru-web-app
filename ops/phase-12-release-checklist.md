@@ -83,3 +83,17 @@ DB障害は共通SERVICE_UNAVAILABLE/INTERNAL_ERROR等、ProviderはAI_*/S3_*/LI
 - `security:readiness`: 同日01:14頃JST、必須9項目不足でexit 1/FAIL。実環境設定なしを検出した結果であり、通すためのダミー設定追加はしない。
 - R04–R10、R12–R18: 同日調査時点でBLOCKED判定、実接続/通知試験日時は「未実施」。環境分離・費用の確認不能が理由。
 - R19/R20の正確な実施時刻・コマンド・件数は[実行証跡](../docs/testing/evidence/phase-12-revalidation-commands.json)を参照。
+
+## Phase Infra-Verify 初回調査（2026-09-22）
+
+Cloud Changes: **NOT EXECUTED** / Release: **NOT READY**。R01–R21の判定は変更しない。今回の成果物作成だけでBLOCKEDをPASSへ更新しない。
+
+- [非本番環境台帳](nonprod-environment-inventory.md): 全項目を記録。ローカル不足はMISSING、remote実在/契約はUNKNOWN、Production分離はBLOCKED。
+- [構築・試験計画](nonprod-provisioning-plan.md): G0〜G4、P01〜P08、承認前後の境界・権限・影響・cleanup。
+- [管理者作業](nonprod-admin-actions.md): R01〜R21の原因、必要作業、自動化可否、費用、完了条件、証跡と次回プロンプト。
+- [月3,000円見積](nonprod-cost-estimate.md): UNKNOWN。契約を無料と推定せず、有料プラン変更なし。
+- 設定案: infra/nonprod/parameters.example.json / vercel-oidc-trust.team.example.json。未適用、Secretなし。
+- security:readiness再実行はexit 1、必須9項目不足（0/9）。isolationはexit 2/BLOCKED。
+- 16/17テーブルはpublic 16＋drizzle migration journal 1の集計差。Schema/Migration差分なし。既存成功済みテストを変更していない。
+- 専用Infrastructure Dev/Test Phase・Budget Guard仕様・CDKコードはRepository検索で見つからずMISSING。一般設計を完成したCDK仕様と扱わない。OIDC adapter/月次Usage Guardの不足を次のローカル実装単位へ記載。
+- 初回禁止のBackup/Restoreも再実行していない。前回のローカル復元PASSを保持し、Neon復元PASSにはしない。
