@@ -109,3 +109,10 @@ Cloud Changes: **NOT EXECUTED** / Release: **NOT READY**。R01–R21の判定は
 - budget:checkはUnknown/exit 2、infra:guard --applyは承認なしでexit 2。これらを実環境PASSとは扱わない。
 - 実施時刻/コマンド: [今回の証跡](../docs/testing/evidence/infra-verify-02-commands.json)。設定値の実値やSecretは記載しない。
 - 既存DB Migration変更なし。Cloud bootstrap/deploy/destroy/diff/lookupなし。
+
+## Phase Infra-Verify ③ Preflight（2026-09-22）
+
+- [Cloud Apply承認準備資料](nonprod-apply-approval.md)を作成。承認PENDING、Cloud Changes NOT EXECUTED、Release NOT READY。
+- 実用途を確認したAWS Profile/Account/Regionと実設定が不足。2026-09-22 05:42:45 UTCの`npm run infra:guard`はexit 2/BLOCKED、`npm run budget:check`はexit 2/Unknown。
+- STS/各Provider照会/実設定synth/CDK diffはNOT RUN。実在・分離・契約は未確認のまま。設定hash/diff hashは未生成、承認期限も未設定。
+- R01–R21の判定を変更しない。Phase②のローカル成功証跡を保持し、実環境成功に読み替えない。今回アプリ/DB Migration変更なし。
