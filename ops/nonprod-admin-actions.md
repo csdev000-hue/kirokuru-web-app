@@ -60,3 +60,11 @@ R03/R05/R07/R08/R09の必要resource詳細は[provisioning plan](nonprod-provisi
 > ops/nonprod-provisioning-plan.mdのうち、承認記録［ID/日時］に明記したP番号［列挙］、Account/Project/Branch/region［非機密ID］、レビュー済みcommit［SHA］のみをApplyしてください。承認した費用上限［金額・試験量］、権限、コマンド、期限を照合し、UNKNOWN/差分追加/対象不一致があれば実行せず報告してください。有料プラン変更は禁止です。Productionへの接続・Secret取得・変更・Deployは禁止です。分離PASS後に承認範囲の実疎通・synthetic通知・隔離復元を順番に検証し、Mockと分けて結果/usage/cleanupを台帳へ記録してください。実環境未確認をPASSにせず公開判定を更新してください。
 
 角括弧が未記入のまま実行しない。現在はG0/G1未完了でApplyできない。
+
+## Phase Infra-Verify ②後の次回プロンプト案
+
+前述の「次のローカル実装単位」は今回完了した範囲では再実施不要。実在確認・費用・承認がまだ必要。
+
+> docs/infrastructure/dev-test-setup.md、budget-guard.md、ops/nonprod-*.mdを確認してください。管理者承認記録［ID/期限/許可P番号］と実Account/Region/Project/Branch［非機密ID］、費用上限［月額/試験量］、commit/template hash［確定値］を照合してください。未記入やUNKNOWNならApplyせず報告してください。確定設定をローカル合成し、infra:guard -- --applyでdigestと期限を検証後、承認された対象のみ別実行でApplyしてください。GitHub CI RoleとVercel Runtime Roleを混同しないでください。共有OIDCが既存なら新規作成を停止しimport差分をレビューしてください。Production操作・Secret取得・有料プラン変更は禁止です。分離確認PASS後のみ実疎通・synthetic通知・承認済みTest復元を実施し、Mockとは別にusage/証跡/cleanupを記録してください。
+
+今回のguardにはApply実行機能はない。CLIで直接制約を迂回しない。実IAM/Network/DB roleの証跡確認は人間と次Phaseの責務。既存の未知認証情報を自動使用しない。

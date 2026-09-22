@@ -1,0 +1,49 @@
+{
+  "month": "2026-09",
+  "limitJpy": 3000,
+  "vercelFixedJpy": null,
+  "usage": {
+    "vercel": {
+      "amountJpy": null,
+      "source": "unknown",
+      "observedAt": null,
+      "evidence": null
+    },
+    "neon": {
+      "amountJpy": null,
+      "source": "unknown",
+      "observedAt": null,
+      "evidence": null
+    },
+    "bedrock": {
+      "amountJpy": null,
+      "source": "unknown",
+      "observedAt": null,
+      "evidence": null
+    },
+    "s3": {
+      "amountJpy": null,
+      "source": "unknown",
+      "observedAt": null,
+      "evidence": null
+    },
+    "awsMonitoring": {
+      "amountJpy": null,
+      "source": "unknown",
+      "observedAt": null,
+      "evidence": null
+    },
+    "livekit": {
+      "amountJpy": null,
+      "source": "unknown",
+      "observedAt": null,
+      "evidence": null
+    },
+    "other": {
+      "amountJpy": null,
+      "source": "unknown",
+      "observedAt": null,
+      "evidence": null
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "config": {
+    "environment": "test",
+    "accountId": "111111111111",
+    "region": "ap-northeast-1",
+    "stackName": "kirokuru-test-fixture",
+    "bucketName": "kirokuru-test-fixture-recordings",
+    "vercel": {
+      "team": "fixture-team",
+      "project": "fixture-app",
+      "issuerMode": "team",
+      "environment": "preview"
+    },
+    "corsOrigins": [
+      "https://fixture.example.invalid"
+    ],
+    "bedrockModelId": "amazon.nova-lite-v1:0",
+    "awsBudgetUsd": 5,
+    "monthlyBudgetJpy": 3000,
+    "s3WarningBytes": 1073741824,
+    "bedrockDailyTokenWarning": 10000,
+    "database": {
+      "host": "ep-fixture.example.invalid",
+      "database": "fixture",
+      "role": "fixture_runtime"
+    },
+    "synthetic": true
+  },
+  "policy": {
+    "allowedAccountIds": [
+      "111111111111"
+    ],
+    "productionAccountIds": [
+      "999999999999"
+    ],
+    "allowedRegions": [
+      "ap-northeast-1"
+    ],
+    "allowedStackNames": [
+      "kirokuru-test-fixture"
+    ],
+    "allowedDatabases": [
+      {
+        "host": "ep-fixture.example.invalid",
+        "database": "fixture",
+        "role": "fixture_runtime"
+      }
+    ],
+    "productionDatabaseHosts": [
+      "ep-production.example.invalid"
+    ]
+  }
+}

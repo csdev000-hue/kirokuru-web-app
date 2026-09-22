@@ -44,3 +44,7 @@ Vercel Proは公式表示$20/月から。仮の換算係数150円/USD（現在�
 - [S3 pricing](https://aws.amazon.com/s3/pricing/)、[Bedrock pricing](https://aws.amazon.com/bedrock/pricing/)
 - [AWS Budgets pricing](https://aws.amazon.com/aws-cost-management/aws-budgets/pricing/)、[通知の遅延・限界](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html)
 - [LiveKit pricing](https://livekit.com/pricing)、[quota](https://docs.livekit.io/deploy/admin/quotas-and-limits/)
+
+## Infra-Verify ②追記
+
+月次の全Provider状態集約とmanual/API/estimateインターフェースを実装した。実usageは未取得なので現在はUnknown。並列予約・自動停止による請求上限保証は実装していない。追加IaCにはCloudWatch Alarm 3本とSNS通知が含まれ、その費用をApply前に再見積する。実環境費用の判定は引き続きUNKNOWN。詳細はdocs/infrastructure/budget-guard.md参照。

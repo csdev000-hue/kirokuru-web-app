@@ -1,22 +1,35 @@
 {
-  "status": "DRAFT_NOT_APPLIED",
-  "cloudApplyApproved": false,
-  "nonproductionAwsAccountId": null,
-  "awsRegion": null,
-  "awsCliProfile": null,
-  "cdkStackName": null,
-  "vercelTeamSlug": null,
-  "vercelProjectName": null,
-  "vercelIssuerMode": null,
-  "allowedVercelEnvironments": ["development", "preview"],
-  "s3BucketName": null,
-  "allowedCorsOrigins": [],
-  "runtimeRoleArn": null,
-  "bedrockModelId": null,
-  "bedrockResourceArns": [],
-  "monthlyTotalBudgetJpy": 3000,
-  "approvedAwsBudgetUsd": null,
-  "approvedExchangeRateJpyPerUsd": null,
-  "notificationRecipientReference": null,
-  "featureFlags": {"AI_ENABLED": false, "RECORDING_ENABLED": false, "LIVE_MEETING_ENABLED": false}
+  "config": {
+    "synthetic": false,
+    "environment": null,
+    "accountId": null,
+    "region": null,
+    "stackName": null,
+    "bucketName": null,
+    "vercel": {
+      "team": null,
+      "project": null,
+      "issuerMode": null,
+      "environment": null
+    },
+    "corsOrigins": [],
+    "bedrockModelId": null,
+    "awsBudgetUsd": null,
+    "monthlyBudgetJpy": 3000,
+    "s3WarningBytes": null,
+    "bedrockDailyTokenWarning": null,
+    "database": {
+      "host": null,
+      "database": null,
+      "role": null
+    }
+  },
+  "policy": {
+    "allowedAccountIds": [],
+    "productionAccountIds": [],
+    "allowedRegions": [],
+    "allowedStackNames": [],
+    "allowedDatabases": [],
+    "productionDatabaseHosts": []
+  }
 }

@@ -227,3 +227,8 @@ Unit 162 / Integration 352 / Security 209件と、E2E 50件を3回連続で検�
 
 非本番の[環境台帳](ops/nonprod-environment-inventory.md)、[構築計画](ops/nonprod-provisioning-plan.md)、[管理者作業](ops/nonprod-admin-actions.md)、[月3,000円の費用評価](ops/nonprod-cost-estimate.md)を追加しました。
 Cloud Applyは未実施です。CDK/Budget Guard専用仕様・実装は未確認/不足で、infra/nonprod/は未適用の設定案です。公開判定はNOT READYを維持します。
+
+### Phase Infra-Verify ②（ローカルIaC）
+
+CDK合成は `npm run infra:build` → `npm run test:infra` → `npm run infra:synth:fixture`。実設定は未確定です。`npm run budget:check`は未確認usageをUnknownにし、`npm run infra:guard -- --apply`は明示承認なしで拒否します。いずれもクラウド操作は実行しません。
+[セットアップと境界](docs/infrastructure/dev-test-setup.md)、[Budget Guard](docs/infrastructure/budget-guard.md)を参照してください。環境はBLOCKED、公開判定はNOT READYです。

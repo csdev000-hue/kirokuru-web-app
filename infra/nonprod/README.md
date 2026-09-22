@@ -1,15 +1,7 @@
-# 非Production設定の準備（未適用）
+# 非Production入力（未確定・未適用）
 
-parameters.example.jsonは入力台帳でありCDK context/CloudFormationではない。null/空欄は未確定、デプロイ可能ではない。Secret値は入力しない。featureFlagsは承認案であり現在の設定を変更しない。
+parameters.example.jsonはCDK config/policyの入力雛形。null/空欄は未確定なのでGuardが拒否する。Secretを入れない。管理者が検証済み非機密値だけをparameters.local.jsonへ入力する。架空の動作設定はtests/infrastructure/fixture.jsonだけに置き、synthetic=trueでApply禁止。
 
-vercel-oidc-trust.team.example.jsonはTeam issuerモード専用Trust案。実Team/Project/issuerモードを確認してから値を確定する。Global issuerならProvider ARNとconditionキーのissuer pathを変更して再レビューする。Project IDをPROJECT_NAMEに代入しない。subjectのProject名と一致させる。wildcard/productionの許可は禁止。
+CDK実装はinfra/aws/、手順は[dev-test-setup](../../docs/infrastructure/dev-test-setup.md)。以前のvercel-oidc-trust.team.example.jsonはTeam issuerの説明用設定案。実際のTrustはCDKがvalidated configから合成する（単一environment、完全一致）。
 
-公式資料: [Vercel AWS OIDC](https://vercel.com/docs/oidc/aws)、[claims reference](https://vercel.com/docs/oidc/reference)（2026-09-22確認）。audienceは標準のTeam URLを使う案。custom audienceを選ぶ場合はProvider登録・Trust・SDK設定を同時に一致させる。JWT自体は成果物に保存しない。
-
-既存infra/aws/のS3 Block Public Access、AES256、BucketOwnerEnforced、CORS、Lifecycle、IAM案を再利用する。新規の重複S3 templateを作らない。CORSのexample.invalidを承認済みDev/Preview originへ限定し、ListBucketは必要prefixのみに絞る。HeadObjectはGetObject権限で扱う。
-
-CDK・Budget Guard専用の既存仕様/実装は見つかっていない。計画段階でCDK完了とは報告しない。次のローカル実装単位で、Account/Region/Stack固定、未設定/Production拒否、S3/IAM/Trust/Budget合成assertion、retain方針を追加する。管理者が既存仕様の別配置を示した場合はそれを優先する。
-
-アプリは現状AWS標準Credential Chain。AWS_ROLE_ARNだけを設定してもVercel OIDC対応完了ではない。server-onlyの共通資格情報providerへ公式awsCredentialsProviderを統合し、S3/Bedrockに渡す変更・回帰テストが別途必要。Vercelには長期Access Keyを設定しない。AWS_REGIONはVercelの実行region任せにせず明示固定する。
-
-変更計画・承認範囲: [provisioning plan](../../ops/nonprod-provisioning-plan.md)。このフォルダのファイルから自動Applyする仕組みはない。
+[構築計画](../../ops/nonprod-provisioning-plan.md)と管理者承認が必要。実Account/Project/role/DB分離と費用は未確認。Cloud Applyは未実行。

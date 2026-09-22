@@ -60,3 +60,7 @@ Local localhostのHTTP開発設定とproduction-readinessのHTTPS要件は区別
 - Migrationは0000の14テーブル＋0004 candidate_generations＋0007 rate_limits=16。
 - Drizzle migratorが管理する`drizzle.__drizzle_migrations`が追加1。node_modules/drizzle-orm/pg-core/dialect.jsの既定journal名も照合。
 - Phase12と再検証の間にSchema変更はない。今回もMigration変更なし。不一致を理由にテストやMigrationを変更しない。
+
+## Infra-Verify ②追記
+
+上表は初回棚卸しの記録。現在はCDKコード/設定Guard/Budget集計/Vercel OIDC adapterがEXISTS（ローカルテスト済み）。実Account/Project/Stack/契約/分離は依然UNKNOWN/BLOCKEDで、台帳の実環境値は埋めていない。架空値はtests/infrastructure/fixture.jsonのみ。実設定雛形のnull/空欄はそのまま保持する。

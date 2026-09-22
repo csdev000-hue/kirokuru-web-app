@@ -1,7 +1,7 @@
 # Phase Infra-Verify / Nonproduction Provisioning Plan
 
 2026-09-22、基点5c410fa。状態: **DRAFT / NOT APPROVED / NOT APPLIED**。
-初回は調査・計画・設定案の準備のみ。既存アプリ、DB schema、成功済みテストの変更なし。既存仕様が見つからないため、専用CDK/Budget GuardはINCOMPLETEとする。
+初回は調査・計画・設定案の準備のみ。既存アプリ、DB schema、成功済みテストの変更なし。初回は専用CDK/Budget Guard未実装。Phase Infra-Verify ②でローカル実装・検証を追加（下記追記参照）。
 
 ## 承認単位
 
@@ -26,7 +26,7 @@ UNKNOWN Account/Projectに対する包括承認を求めない。G0/G1未完了�
 | P07 Neon復元 | source/target UNKNOWN | 契約機能の確認後、新規Test復元先 | UNKNOWN、履歴/branch/storage費用 | Test branch restore管理 | Runbookのmarker A/B復元手順。実API/Console選択後コマンド確定 | Test branchと追加保存領域 | 作成ID照合・証跡保存後、専用復元先のみcleanup | Production復元/clone/上書きなし、target空/隔離 |
 | P08 GitHub CI | Repository管理設定未確認 | 非本番PRのCI実行、Required Checks | UNKNOWN、Actions枠確認 | PR/Actions閲覧、管理者branch rule設定 | PRでCI/Security実行、Consoleで結果と必須status checksを確認 | merge gateが追加 | 追加ruleのみ前設定へ復元、成功検査をskipしない | ActionsにProduction Secret不要、contents:read維持 |
 
-CDKコマンドは将来の雛形。現在cdk.json/実行可能Stackはないため、存在するコマンドとして報告しない。未知のリソース名を推測してApplyしない。
+上表のApplyコマンドは未実行の案。ローカル合成は現在 `npm run infra:synth:fixture` / `npm run infra:synth`（CDK API、lookupなし）で実行可能。未知のリソース名を推測してApplyしない。
 
 ## G1で必要なコード/設定
 
@@ -53,3 +53,16 @@ CDKコマンドは将来の雛形。現在cdk.json/実行可能Stackはないた
 9. CI: 実PR commitのCI/checks・Security/security実行URL、Required Checks設定、Secret name/scopeのみ、DB一時生成、3browser、Migration差分なし、Client scanを確認。ローカル成功と区別する。
 
 記録形式: ID / UTC日時 / 環境・非機密ID / commandまたはConsole手順 / PASS・FAIL・BLOCKED・NOT RUN / result・requestId / 費用・usage / 証跡参照 / cleanup結果 / 残課題。実接続機能の結果とMock結果は別欄。
+
+## Phase Infra-Verify ② 実装結果（2026-09-22）
+
+G1の今回範囲はローカル実装・検証完了。G0の実ID/契約とG2以降は未完了。Infrastructure Code: READY（今回仕様のIaC・監視判定・Guard）。Non-production Environment: BLOCKED / Cloud Apply: NOT EXECUTED / Release: NOT READY。
+
+- CDK: infra/aws/nonprod-stack.ts。S3/IAM/Vercel OIDC/AWS Budget/SNS/CloudWatch 3 Alarm、retain、Outputs。
+- 設定: parameters.example.jsonをconfig/policyへ統合。架空値はtests/infrastructure/fixture.jsonだけ、synthetic=trueでApply拒否。
+- Runtime: S3/Bedrockはserver-only公式Vercel OIDC providerへ対応。Local既存chain維持、production/静的キー拒否。
+- Budget Guard: 月3,000円、7費用区分、Vercel固定費、API/manual/estimateインターフェース、Unknown/Warning/Critical/Exceeded。月次支出予約や自動停止のledgerは今回仕様外で、上段の将来検討要件を実装済みとは扱わない。
+- Guard: Account/Region/Stack/DB許可、production deny、期限/設定digestに結び付いた明示承認。AWS実identity/IAMは次Phaseで照合。
+- 詳細: [セットアップ](../docs/infrastructure/dev-test-setup.md)、[Budget Guard](../docs/infrastructure/budget-guard.md)。現在の予算・実環境分離はUNKNOWN/BLOCKEDのまま。
+
+Apply前にtemplateを実設定で再合成し、CDK OIDC Providerの既存有無（共有ならimport設計へ変更）、foundation-model/region可用性、SNS通知先、AWS予算USD、3 Alarm/SNSの追加費用を確認する。NoEcho通知先は受信者合意後に安全に設定する。今回外部通知なし。

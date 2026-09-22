@@ -1,0 +1,140 @@
+{
+  "scope": "local only; fixture CDK synth; no cloud API/deploy/lookup; local isolated database tests",
+  "runs": [
+    {
+      "name": "infra-build",
+      "command": "npm run infra:build",
+      "start": "2026-09-21T17:52:37.108675+00:00",
+      "end": "2026-09-21T17:52:40.039125+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "83b8a4c41dc4eb95592171afc28e627740b2e9db162af04b907fd9099dc929c4"
+    },
+    {
+      "name": "synth",
+      "command": "npm run infra:synth:fixture",
+      "start": "2026-09-21T17:52:40.039626+00:00",
+      "end": "2026-09-21T17:52:42.336068+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "1f4ebc0c6c9e6bdc7c379ba50c64132993929efb47f0908e1fa7eaf4e1a833ff"
+    },
+    {
+      "name": "infra-tests",
+      "command": "npm run test:infra",
+      "start": "2026-09-21T17:52:42.336588+00:00",
+      "end": "2026-09-21T17:52:44.181721+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "5c2344274718f4b19fb1d229aac2b921aba017c3f98a6d975f7c3898ee6853ea"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "start": "2026-09-21T17:52:44.182198+00:00",
+      "end": "2026-09-21T17:52:48.481389+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "07d14219ac54185809459359ab6f9ce3d9df69b776ad861da4668092d160b3c8"
+    },
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "start": "2026-09-21T17:52:48.481915+00:00",
+      "end": "2026-09-21T17:52:52.878848+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "863714f1ec9a0afc698da221c2a0e167c4d766e39ab6aa9fe3eb9798dea4a815"
+    },
+    {
+      "name": "unit",
+      "command": "npm run test:run",
+      "start": "2026-09-21T17:52:52.879385+00:00",
+      "end": "2026-09-21T17:52:54.838927+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "a2fbb90d38412f2b84a761bc3fb6d519b63b3f3f877d79f12c902136cfdbb874"
+    },
+    {
+      "name": "integration",
+      "command": "npm run test:integration",
+      "start": "2026-09-21T17:52:54.839281+00:00",
+      "end": "2026-09-21T17:53:02.199265+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "34c951845e21e294fe4a9d299969d48ba8b061cc71769417ea14e95d9743108f"
+    },
+    {
+      "name": "security",
+      "command": "npm run test:security",
+      "start": "2026-09-21T17:53:02.200073+00:00",
+      "end": "2026-09-21T17:53:07.438588+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "3071db960541ae522fe0174256a2e784d2d6ff2ccc0815726c993ae9dc8d25be"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "start": "2026-09-21T17:53:07.439423+00:00",
+      "end": "2026-09-21T17:53:19.226292+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "48d4028b7839e635db500e87b04bb324255ff2f0c0f7dee8d4d1ad5f80fa4c71"
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "start": "2026-09-21T17:53:19.227166+00:00",
+      "end": "2026-09-21T17:53:59.771213+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "fb414e99e8482226193b91d1ca858aebc58e07c6dff0679b29c33351280729ba"
+    },
+    {
+      "name": "secrets",
+      "command": "npm run security:secrets",
+      "start": "2026-09-21T17:53:59.772204+00:00",
+      "end": "2026-09-21T17:54:00.121075+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "8ff4c18eef3e50fc7439701dc552600c3e317c0230320a776a81063df7beb67f"
+    },
+    {
+      "name": "client",
+      "command": "npm run security:client",
+      "start": "2026-09-21T17:54:00.121577+00:00",
+      "end": "2026-09-21T17:54:00.366202+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "50595e2916c5ed7a6b75a97f3f8c15d36cc4a087be421d57291b8e38de8639b2"
+    },
+    {
+      "name": "budget",
+      "command": "npm run budget:check",
+      "start": "2026-09-21T17:54:00.366558+00:00",
+      "end": "2026-09-21T17:54:00.713635+00:00",
+      "exitCode": 2,
+      "result": "EXPECTED_UNKNOWN_OR_DENIED",
+      "logSha256": "c41353dbfb78eb4f9b895a3d592c279bda676843801961866d6fa70680c6df74"
+    },
+    {
+      "name": "guard",
+      "command": "npm run infra:guard -- --apply",
+      "start": "2026-09-21T17:54:00.714063+00:00",
+      "end": "2026-09-21T17:54:01.076433+00:00",
+      "exitCode": 2,
+      "result": "EXPECTED_UNKNOWN_OR_DENIED",
+      "logSha256": "aac1306503dcdebf12057618ec46b08d24bbbcdada3397ea0becaca0b05d4c4d"
+    },
+    {
+      "name": "audit",
+      "command": "npm audit",
+      "start": "2026-09-21T17:54:01.076819+00:00",
+      "end": "2026-09-21T17:54:02.305768+00:00",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    }
+  ]
+}

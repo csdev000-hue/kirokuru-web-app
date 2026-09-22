@@ -97,3 +97,15 @@ Cloud Changes: **NOT EXECUTED** / Release: **NOT READY**。R01–R21の判定は
 - 16/17テーブルはpublic 16＋drizzle migration journal 1の集計差。Schema/Migration差分なし。既存成功済みテストを変更していない。
 - 専用Infrastructure Dev/Test Phase・Budget Guard仕様・CDKコードはRepository検索で見つからずMISSING。一般設計を完成したCDK仕様と扱わない。OIDC adapter/月次Usage Guardの不足を次のローカル実装単位へ記載。
 - 初回禁止のBackup/Restoreも再実行していない。前回のローカル復元PASSを保持し、Neon復元PASSにはしない。
+
+## Phase Infra-Verify ② ローカルIaC（2026-09-22）
+
+- Infrastructure Code: READY（本Phaseのローカル実装範囲）。Environment BLOCKED、Cloud Apply NOT EXECUTED、Release NOT READY。
+- R03/R05: Account/Region/Stack/DB接続先/承認Guardを実装・拒否テスト成功。ただし実権限分離の証明は未了、BLOCKED維持。
+- R07–R09: S3/IAM/OIDC/Bedrock IaC・短期credential adapter追加。実Provider試験なし、BLOCKED維持。
+- R12–R17: AWS Budget、S3容量/Bedrock tokensのAlarm、Budget GuardとNeon/LiveKit manual/API interface追加。契約/実usage/通知到達未確認、BLOCKED維持。
+- R19: 既存隔離ローカルdump/restoreをIntegration内で再実行して成功。Neon復元は未実施。
+- R20: lint/typecheck/Unit 162/Integration 353/Security 209/E2E 50/build成功。Infrastructure 51件成功、CDK build/synth成功。Secret/Client検査成功、audit 0。
+- budget:checkはUnknown/exit 2、infra:guard --applyは承認なしでexit 2。これらを実環境PASSとは扱わない。
+- 実施時刻/コマンド: [今回の証跡](../docs/testing/evidence/infra-verify-02-commands.json)。設定値の実値やSecretは記載しない。
+- 既存DB Migration変更なし。Cloud bootstrap/deploy/destroy/diff/lookupなし。
